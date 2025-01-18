@@ -165,7 +165,7 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 		return -1
 	}
 	// only five days so not too bad in efficiency
-	for day, timings := range timetable {
+	for _, timings := range timetable {
 
 		prev_end_time := eightAM
 		var prev_location models.Location
