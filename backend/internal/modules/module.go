@@ -101,5 +101,4 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 	var lessonToSlotListMap = make(map[models.Lesson][]models.Slot)
 	var lessonList []models.Lesson
 	slotCount := 0
-
 }
