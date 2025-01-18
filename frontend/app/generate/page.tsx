@@ -3,18 +3,32 @@ import { useState } from "react";
 import TimetableForm from "../../components/TimetableForm";
 import TimetableDisplay from "../../components/TimetableDisplay";
 
-export default function TimetablePage() {
-  const [timetables, setTimetables] = useState([]);
+interface Timetable {
+  rank: number;
+  activities: string[];
+  location: string;
+  freeDays: string[];
+  unfavorableTimings: string;
+}
 
-  const generateTimetables = ({ activities }) => {
-    const mockTimetables = activities.map((activity, index) => ({
+interface GenerateTimetablesProps {
+  options: string[];
+  semester: string;
+  excludeDays: string[];
+  excludedTimings: string[];
+}
+
+export default function TimetablePage() {
+  const [timetables, setTimetables] = useState<Timetable[]>([]);
+
+  const generateTimetables = ({ options, semester, excludeDays, excludedTimings }: GenerateTimetablesProps): void => {
+    // Create Timetable objects
+    const mockTimetables = options.map((option, index) => ({
       rank: index + 1,
-      timetable: `${activity.activity} - ${activity.duration} mins, Priority: ${activity.priority}`,
-      details: `
-        Activity: ${activity.activity}
-        Priority: ${activity.priority}
-        Duration: ${activity.duration} minutes
-      `,
+      activities: [option],
+      location: "NUS",
+      freeDays: excludeDays,
+      unfavorableTimings: excludedTimings.join(", "),
     }));
     setTimetables(mockTimetables);
   };

@@ -1,16 +1,16 @@
 import { useState } from "react";
 
-type Timetable = {
+interface Timetable {
   rank: number;
   activities?: string[];
   location?: string;
   freeDays?: string[];
   unfavorableTimings?: string;
-};
+}
 
-type TimetableDisplayProps = {
+interface TimetableDisplayProps {
   timetables: Timetable[];
-};
+}
 
 // Timetable Display Component
 export default function TimetableDisplay({ timetables }: TimetableDisplayProps) {
@@ -26,7 +26,6 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
       </div>
     );
   }
-
   // Display timetables
   return (
     <div className="w-full md:w-2/3 bg-mainbg p-6 rounded-lg shadow-lg relative">
@@ -41,7 +40,9 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
             onMouseEnter={() => setHoveredTimetable(timetable)}
             onMouseLeave={() => setHoveredTimetable(null)}
           >
-            <h3 className="text-lg font-bold text-orange">Rank #{timetable.rank}</h3>
+            <h3 className="text-lg font-bold text-orange">
+              Rank #{timetable.rank}
+            </h3>
             <p className="text-gray-300 mt-2">
               Activities: {Array.isArray(timetable.activities) && timetable.activities.length > 0
                 ? timetable.activities.join(", ")
@@ -60,7 +61,9 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
             {/* Hover Preview */}
             {hoveredTimetable === timetable && (
               <div className="absolute top-0 right-[-260px] bg-header p-6 shadow-lg rounded-lg w-64 animate-fade-in z-10">
-                <h3 className="text-xl font-bold text-orange mb-2">Timetable Preview</h3>
+                <h3 className="text-xl font-bold text-orange mb-2">
+                  Timetable Preview
+                </h3>
                 <p className="text-gray-300 whitespace-pre-line">
                   <strong>Activities:</strong> {Array.isArray(timetable.activities) && timetable.activities.length > 0
                     ? timetable.activities.join(", ")

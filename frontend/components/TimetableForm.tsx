@@ -1,176 +1,100 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { FaSearch } from "react-icons/fa";
 
-// Helper function to check if two time ranges overlap
-const timeRangesOverlap = (userRange, activityRange) => {
-  const parseTime = (timeStr) => {
-    const [hours, minutes] = timeStr.split(":").map((str) => str.padStart(2, "0"));
-    return parseInt(hours) * 60 + parseInt(minutes);
-  };
+interface TimetableFormProps {
+  onGenerate: (data: {
+    options: string[];
+    semester: string;
+    excludeDays: string[];
+    excludedTimings: string[];
+  }) => void;
+}
 
-  const [userStart, userEnd] = userRange.split(" - ").map(parseTime);
-  const [activityStart, activityEnd] = activityRange.split(" - ").map(parseTime);
+export default function TimetableForm({ onGenerate }: TimetableFormProps) {
+  const [query, setQuery] = useState<string>("");
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [semester, setSemester] = useState<string>("");
+  const [excludeDays, setExcludeDays] = useState<string[]>([]);
+  const [excludedTimings, setExcludedTimings] = useState<string[]>([]);
+  const [popupMessage] = useState<string>("");
+  const [currentStartTime, setCurrentStartTime] = useState<string>("07:00");
+  const [currentEndTime, setCurrentEndTime] = useState<string>("08:00");
+  const [isFocused, setIsFocused] = useState<boolean>(false);
+  const [options, setOptions] = useState<string[]>([]);
 
-  return userStart < activityEnd && activityStart < userEnd;
-};
+  const daysOfWeek: string[] = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
 
-export default function TimetableForm({ onGenerate }) {
-  const [query, setQuery] = useState(""); // For dropdown search bar
-  const [selectedActivities, setSelectedActivities] = useState([]); // To store selected activities
-  const [location, setLocation] = useState(""); // For location input
-  const [excludeDays, setExcludeDays] = useState([]); // For excluded days
-  const [excludedTimings, setExcludedTimings] = useState([]); // For excluded timings
-  const [popupMessage, setPopupMessage] = useState(""); // For conflict popup messages
-  const [currentStartTime, setCurrentStartTime] = useState("07:00");
-  const [currentEndTime, setCurrentEndTime] = useState("08:00");
-  const [isFocused, setIsFocused] = useState(false);
-  const [options, setOptions] = useState([]);
-
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-
-  // Predefined activity options with available days and timings
-  /* const options = [
-    { activity: "Morning Yoga", availableDays: ["Monday", "Wednesday", "Friday"], timing: "07:00 - 08:00" },
-    { activity: "Study Session", availableDays: ["Tuesday", "Thursday"], timing: "09:00 - 12:00" },
-    { activity: "Gym Workout", availableDays: ["Monday", "Tuesday", "Thursday"], timing: "18:00 - 19:00" },
-    { activity: "Meeting", availableDays: ["Wednesday"], timing: "10:00 - 11:00" },
-    { activity: "Lunch Break", availableDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], timing: "12:00 - 13:00" },
-    { activity: "Meditation", availableDays: ["Saturday", "Sunday"], timing: "08:00 - 08:30" },
-    { activity: "Project Work", availableDays: ["Tuesday", "Thursday"], timing: "14:00 - 16:00" },
-    { activity: "Dinner with Friends", availableDays: ["Friday", "Saturday"], timing: "19:00 - 21:00" },
-  ]; */
-
-  // Puts in all data from getOptions when utilising search bar
   useEffect(() => {
-    getOptions()
-    console.log(options)
-  }, [])
+    getOptions();
+    console.log(options);
+  }, []);
 
-  // Get options
-  const getOptions = async () => {
+  const getOptions = async (): Promise<void> => {
     try {
       const response = await fetch("http://localhost:8080/getAllMods", {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-        }
-      })
+        },
+      });
       const data = await response.json();
       setOptions(data.payload);
-    }
-    catch (error) {
-      console.error('Error fetching posts', error);
+    } catch (error) {
+      console.error("Error fetching options", error);
     }
   };
 
-  /* Add startsWith for next implement */
-  const filteredOptions: string[] = options.filter((option: string) =>
+  const filteredOptions = options.filter((option) =>
     option.toUpperCase().includes(query.toUpperCase())
-  ).slice(0,5);
+  ).slice(0, 5);
 
-  const handleAddActivity = (activityObj) => {
-    setSelectedActivities([...selectedActivities, activityObj]);
+  const handleAddOption = (option: string): void => {
+    setSelectedOptions([...selectedOptions, option]);
     setQuery(""); // Clear the search query
   };
 
-  const handleRemoveActivity = (index) => {
-    setSelectedActivities((prevActivities) =>
-      prevActivities.filter((_, i) => i !== index)
+  const handleRemoveOption = (index: number): void => {
+    setSelectedOptions((prevOptions) =>
+      prevOptions.filter((_, i) => i !== index)
     );
   };
 
-  const toggleExcludeDay = (day) => {
+  const toggleExcludeDay = (day: string): void => {
     const newExcludedDays = excludeDays.includes(day)
-      ? excludeDays.filter((d) => d !== day) // Remove the day if already excluded
-      : [...excludeDays, day]; // Add the day to exclude
+      ? excludeDays.filter((d) => d !== day)
+      : [...excludeDays, day];
 
-    const conflicts = selectedActivities.some((activity) =>
-      activity.availableDays.every((availableDay) => newExcludedDays.includes(availableDay))
-    );
-
-    if (conflicts) {
-      const conflictingActivities = selectedActivities.filter((activity) =>
-        activity.availableDays.every((availableDay) => newExcludedDays.includes(availableDay))
-      );
-      setPopupMessage(
-        `You cannot exclude ${day} as it conflicts with: ${conflictingActivities
-          .map((a) => a.activity)
-          .join(", ")}.`
-      );
-      setTimeout(() => setPopupMessage(""), 3000); // Remove popup after 3 seconds
-    } else {
-      setPopupMessage(""); // Clear any popup messages
-      setExcludeDays(newExcludedDays); // Update the excluded days
-    }
+    setExcludeDays(newExcludedDays);
   };
 
-  const addExcludedTiming = () => {
+  const addExcludedTiming = (): void => {
     const newTiming = `${currentStartTime} - ${currentEndTime}`;
+    setExcludedTimings([...excludedTimings, newTiming]);
+  };
 
-    const conflicts = selectedActivities.some((activity) =>
-      timeRangesOverlap(newTiming, activity.timing)
+  const handleRemoveTiming = (index: number): void => {
+    setExcludedTimings((prevTimings) =>
+      prevTimings.filter((_, i) => i !== index)
     );
-
-    if (conflicts) {
-      const conflictingActivities = selectedActivities.filter((activity) =>
-        timeRangesOverlap(newTiming, activity.timing)
-      );
-      setPopupMessage(
-        `The timing "${newTiming}" conflicts with: ${conflictingActivities
-          .map((a) => a.activity)
-          .join(", ")}.`
-      );
-      setTimeout(() => setPopupMessage(""), 3000); // Remove popup after 3 seconds
-    } else {
-      setExcludedTimings([...excludedTimings, newTiming]);
-    }
   };
 
-  const handleRemoveTiming = (index) => {
-    setExcludedTimings((prevTimings) => prevTimings.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: FormEvent): void => {
     e.preventDefault();
-    if (selectedActivities.length === 0) {
-      alert("Please add at least one activity!");
+    if (selectedOptions.length === 0) {
+      alert("Please add at least one option!");
       return;
     }
-    onGenerate({ activities: selectedActivities, location, excludeDays, excludedTimings });
+    onGenerate({ options: selectedOptions, semester, excludeDays, excludedTimings });
   };
-
-  const generateJSONFile = async () => {
-  const jsonData = {
-    selectedActivities: selectedActivities.map((activity) => ({
-      activity: activity.activity,
-      availableDays: activity.availableDays,
-      timing: activity.timing,
-    })),
-    includedDays: daysOfWeek.filter((day) => !excludeDays.includes(day)),
-    unfavourableTimings: excludedTimings,
-  };
-
-  try {
-    // Send the JSON data to the backend
-    const response = await fetch("/your-backend-endpoint", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(jsonData),
-    });
-
-    if (response.ok) {
-      // Handle the response from the backend, if necessary
-      console.log("Data successfully submitted");
-    } else {
-      console.error("Error submitting data");
-    }
-  } catch (error) {
-    console.error("An error occurred while submitting the data:", error);
-  }
-};
 
   return (
     <div className="bg-header p-6 rounded-lg shadow-lg relative text-white">
@@ -186,7 +110,7 @@ export default function TimetableForm({ onGenerate }) {
         {/* Styled Search Bar */}
         <div className="relative">
           <label htmlFor="search" className="sr-only">
-            Search Activity
+            Search Option
           </label>
           <div
             className={`flex items-center border-b ${
@@ -206,7 +130,7 @@ export default function TimetableForm({ onGenerate }) {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-300 placeholder-gray-300"
-              placeholder="Search activity..."
+              placeholder="Search option..."
             />
           </div>
 
@@ -216,7 +140,7 @@ export default function TimetableForm({ onGenerate }) {
               {filteredOptions.map((option, index) => (
                 <li
                   key={index}
-                  onClick={() => handleAddActivity(option)}
+                  onClick={() => handleAddOption(option)}
                   className="px-4 py-2 cursor-pointer text-gray-300 hover:bg-orange hover:text-white transition-all duration-200"
                 >
                   {option} 
@@ -229,15 +153,15 @@ export default function TimetableForm({ onGenerate }) {
           )}
         </div>
 
-        {/* Location */}
+        {/* Semester */}
         <div>
-          <label className="block text-sm font-medium text-orange">Location</label>
+          <label className="block text-sm font-medium text-orange">Semester</label>
           <input
             type="text"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            value={semester}
+            onChange={(e) => setSemester(e.target.value)}
             className="w-full mt-1 bg-mainbg text-gray-300 rounded-md border border-gray-600 px-3 py-1 focus:outline-none focus:ring-2 focus:ring-orange"
-            placeholder="e.g., Office, Home"
+            placeholder="e.g., 1"
           />
         </div>
 
@@ -311,35 +235,27 @@ export default function TimetableForm({ onGenerate }) {
         {/* Submit Button */}
         <button
           type="submit"
-          /* This needs to be implemented with backend*/
-          /* onClick={generateJSONFile} */
           className="w-full bg-orange text-white py-2 rounded-md hover:bg-orange-700 transition-all duration-300"
         >
           Generate Timetable
         </button>
       </form>
 
-      {/* Display Selected Activities */}
+      {/* Display Selected Options */}
       <div className="mt-6">
-        <h3 className="text-lg font-bold text-orange mb-4">Selected Activities</h3>
-        {selectedActivities.length === 0 ? (
-          <p className="text-gray-300 text-center">No activities added yet.</p>
+        <h3 className="text-lg font-bold text-orange mb-4">Selected Options</h3>
+        {selectedOptions.length === 0 ? (
+          <p className="text-gray-300 text-center">No options added yet.</p>
         ) : (
           <ul className="space-y-2">
-            {selectedActivities.map((activity, index) => (
+            {selectedOptions.map((option, index) => (
               <li
                 key={index}
                 className="bg-mainbg shadow-md rounded-md p-4 flex justify-between items-center"
               >
-                <div>
-                  <p className="text-sm font-bold text-orange">{activity.activity}</p>
-                  <p className="text-sm text-gray-300">
-                    Available Days: {activity.availableDays.join(", ")}
-                  </p>
-                  <p className="text-sm text-gray-300">Timing: {activity.timing}</p>
-                </div>
+                <p className="text-sm font-bold text-orange">{option}</p>
                 <button
-                  onClick={() => handleRemoveActivity(index)}
+                  onClick={() => handleRemoveOption(index)}
                   className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-300"
                 >
                   Remove
