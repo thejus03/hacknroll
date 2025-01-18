@@ -101,7 +101,7 @@ func Submit(c *gin.Context, venueData map[string]any) {
 		}
 	}
 	graph := graph.CreateGraph(lessonSlotList)
-
+	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToSlotListMap, cutoff_timings, freeDays, graph)
 }
 
 func cleanData(rawDataList []any, semester int, venueData map[string][]float64, maxDistance float64) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
