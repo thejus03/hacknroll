@@ -17,8 +17,8 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [semester, setSemester] = useState<number>(1);
   const [freeDays, setFreeDays] = useState<string[]>([]);
-  const [currentStartTime, setCurrentStartTime] = useState<string>("07:00");
-  const [currentEndTime, setCurrentEndTime] = useState<string>("08:00");
+  const [currentStartTime, setCurrentStartTime] = useState<string>("0700");
+  const [currentEndTime, setCurrentEndTime] = useState<string>("0800");
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [mods, setMods] = useState<string[]>([]);
 
@@ -68,6 +68,8 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
       });
       if (!response.ok) {
         console.error("Failed to submit options. Status:", response.status);
+      } else {
+        console.log(response.json());
       }
     } catch (error) {
       console.error("Error submitting options:", error);
@@ -77,6 +79,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   useEffect(() => {
     if (selectedOptions.length > 0) {
       submitSelectedOptions();
+      console.log("Checker", selectedOptions);
     }
   }, [selectedOptions]);
 
@@ -89,9 +92,9 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
   }, []);
 
-  const handleRemoveOption = useCallback((index: number): void => {
+  const handleRemoveOption = useCallback((mod: string): void => {
     setSelectedOptions((prevOptions) => {
-      return prevOptions.filter((_, i) => i !== index);
+      return prevOptions.filter((modSelected, _) => modSelected !== mod);
     });
   }, []);
 
@@ -120,13 +123,20 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
       return;
     }
 
+    const [earliesthour, earliestminute] = currentStartTime.split(':').map((time) => time.padStart(2, '0'));
+    const earliestTime = earliesthour + earliestminute;
+
+    const [latesthour, latestminute] = currentEndTime.split(':').map((time) => time.padStart(2, '0'));
+    const latestTime = latesthour + latestminute;
+
     const requestData = {
       mods: selectedOptions,
       freeDays: freeDays,
       semester: semester,
-      currentStartTime,
-      currentEndTime,
+      earliestTime,
+      latestTime,
     };
+
 
     try {
       const response = await fetch("http://localhost:8080/getSlots", {
@@ -278,7 +288,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
               >
                 <p className="text-sm font-bold text-orange">{mod}</p>
                 <button
-                  onClick={() => handleRemoveOption(index)}
+                  onClick={() => handleRemoveOption(mod)}
                   className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-300"
                 >
                   Remove
