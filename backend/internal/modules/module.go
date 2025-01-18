@@ -91,6 +91,16 @@ func Submit(c *gin.Context, venueData map[string]any) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid latest time format"})
 		return
 	}
+	cutoff_timings := map[string]time.Time{"earliest": earliestTime, "latest": latestTime}
+	lessonToSlotListMap, lessons, nil := cleanData(rawDataList, semester, venueData, 0.300)
+	// use cleaned data to make a list to make a graph
+	var lessonSlotList []models.LessonSlot
+	for lesson, slotList := range lessonToSlotListMap {
+		for _, slot := range slotList {
+			lessonSlotList = append(lessonSlotList, models.LessonSlot{Lesson: lesson, Slot: slot})
+		}
+	}
+	graph := graph.CreateGraph(lessonSlotList)
 
 }
 
