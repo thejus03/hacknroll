@@ -94,7 +94,7 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 		return
 	}
 	cutoff_timings := map[string]time.Time{"earliest": earliestTime, "latest": latestTime}
-	lessonToSlotListMap, lessons, err := cleanData(rawDataList, semester, venueData, freeDays)
+	lessonToClassNoToSlotListMap, lessons, err := cleanData(rawDataList, semester, venueData, freeDays)
 	if err != nil {
 		fmt.Println("Error cleaning data:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error cleaning data"})
@@ -102,22 +102,24 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 	}
 	// use cleaned data to make a list to make a graph
 	var lessonSlotList []models.LessonSlot
-	for lesson, slotList := range lessonToSlotListMap {
-		for _, slot := range slotList {
-			lessonSlotList = append(lessonSlotList, models.LessonSlot{Lesson: lesson, Slot: slot})
+	for lesson, classNoMap := range lessonToClassNoToSlotListMap {
+		for _, slotList := range classNoMap {
+			for _, slot := range slotList {
+				lessonSlotList = append(lessonSlotList, models.LessonSlot{Lesson: lesson, Slot: slot})
+			}
 		}
 	}
 	graph := graph.CreateGraph(lessonSlotList)
-	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToSlotListMap, cutoff_timings, freeDays, graph)
+	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToClassNoToSlotListMap, cutoff_timings, freeDays, graph)
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": res})
 
 }
 
-func cleanData(rawDataList []any, semester int, venueData map[string][]float64, freeDays map[string]bool) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
+func cleanData(rawDataList []any, semester int, venueData map[string][]float64, freeDays map[string]bool) (map[models.Lesson]map[string][]models.Slot, []models.Lesson, error) {
 	// var filtered []models.LessonSlot
 	// filtering
 	const timeLayout = "1504"
-	var lessonToSlotListMap = make(map[models.Lesson][]models.Slot)
+	var lessonToClassNoToSlotListMap = make(map[models.Lesson]map[string][]models.Slot)
 	var lessonList []models.Lesson
 	slotCount := 0 // tracking foer performance
 	for _, eachModRawData := range rawDataList {
@@ -229,36 +231,33 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
 
 			mapKeyExists := false
-			for key, value := range lessonToSlotListMap {
+			for key, value := range lessonToClassNoToSlotListMap {
+				// if same Lesson Type,
 				if key == lessonInstance {
 					mapKeyExists = true
 					// check if the day, time and same x,y coordinate are the same, if so , dont add
 					// append to the list
-					slotExists := false
-					for _, slot := range value {
-						if slot.IsEqual(slotInstance) {
-							slotExists = true
-							break
+					// check if the class number is the same
+					for classNoKey, slotArr := range value {
+						if classNoKey == classNo {
+							slotArr = append(slotArr, slotInstance)
 						}
-					}
-					if !slotExists {
-						// fmt.Println("appnding to the list")
-						lessonToSlotListMap[key] = append(lessonToSlotListMap[key], slotInstance)
 					}
 				}
 			}
 			if !mapKeyExists {
-				lessonToSlotListMap[lessonInstance] = []models.Slot{slotInstance}
+				// initialise the key/value pair
+				lessonToClassNoToSlotListMap[lessonInstance] = map[string][]models.Slot{classNo: []models.Slot{slotInstance}}
 				lessonList = append(lessonList, lessonInstance)
 			}
 		}
 
 	}
 	fmt.Println("slots created:", slotCount)
-	for lesson, slotList := range lessonToSlotListMap {
+	for lesson, slotList := range lessonToClassNoToSlotListMap {
 		fmt.Println(lesson, ":", len(slotList))
 	}
-	return lessonToSlotListMap, lessonList, nil
+	return lessonToClassNoToSlotListMap, lessonList, nil
 
 }
 
