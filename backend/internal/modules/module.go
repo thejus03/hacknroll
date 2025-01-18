@@ -44,35 +44,7 @@ func GetAllModules(c *gin.Context) {
 }
 
 func Submit(c *gin.Context, venueData map[string][]float64) {
-	jsonData, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		fmt.Println("error reading json")
-		return
-	}
-	var userInput models.UserInput
-	if err := json.Unmarshal(jsonData, &userInput); err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
-		return
-	}
-	var rawDataList []any
-	for _, modCode := range userInput.ChosenLessons {
-		url := fmt.Sprintf("https://api.nusmods.com/v2/2024-2025/modules/%s.json", strings.ToUpper(modCode))
-		fmt.Println("url:", url)
-		resp, err := http.Get(url)
-		if err != nil {
-			fmt.Println("Error:", err)
-		}
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			fmt.Println("something wrong with fetching module info using codes")
-		}
-		var data map[string]any
-		json.Unmarshal(body, &data)
-		rawDataList = append(rawDataList, data)
-		defer resp.Body.Close()
-	}
-
+	userInput := modDataFromList(c)
 	freeDays := make(map[string]bool)
 	for _, day := range userInput.FreeDays {
 		freeDays[day] = true
@@ -318,4 +290,36 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 	}
 
 	fmt.Println(fiveLinks)
+}
+
+func modDataFromList(c *gin.Context) models.UserInput {
+	jsonData, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		fmt.Println("error reading json")
+		return models.UserInput{}
+	}
+	var userInput models.UserInput
+	if err := json.Unmarshal(jsonData, &userInput); err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return models.UserInput{}
+	}
+	var rawDataList []any
+	for _, modCode := range userInput.ChosenLessons {
+		url := fmt.Sprintf("https://api.nusmods.com/v2/2024-2025/modules/%s.json", strings.ToUpper(modCode))
+		fmt.Println("url:", url)
+		resp, err := http.Get(url)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("something wrong with fetching module info using codes")
+		}
+		var data map[string]any
+		json.Unmarshal(body, &data)
+		rawDataList = append(rawDataList, data)
+		defer resp.Body.Close()
+	}
+	return userInput
 }

@@ -33,7 +33,9 @@ func main() {
 	/// Get all coursecodes
 	r.GET("/getAllMods", func(c *gin.Context) { modules.GetAllModules(c) })
 	venueData := make(map[string][]float64)
-
+	r.POST("/checkFreeDays", func(c *gin.Context) {
+		// TBD
+	})
 	/// Post course data and free days
 	r.POST("/getSlots", func(c *gin.Context) {
 
