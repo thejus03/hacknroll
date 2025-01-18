@@ -285,7 +285,7 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 				modTypeNoMap[lessonSlotVar.Lesson.ModuleCode] = map[string]string{}
 			}
 			var lessonType string
-			switch lessonType {
+			switch lessonSlotVar.Lesson.LessonType {
 			case "Lecture":
 				lessonType = "LEC"
 			case "Tutorial":
@@ -294,9 +294,10 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 				lessonType = "WS"
 			case "Laboratory":
 				lessonType = "LAB"
-			case "Recital":
+			case "Recitation":
 				lessonType = "REC"
 			}
+			fmt.Println("lessonType:", lessonType)
 			modTypeNoMap[lessonSlotVar.Lesson.ModuleCode][lessonType] = lessonSlotVar.Slot.ClassNo
 		}
 		modTypeNoMapList = append(modTypeNoMapList, modTypeNoMap)
@@ -306,9 +307,15 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 		url := "https://nusmods.com/timetable/sem-2/share?"
 		for modCode, moduleMap := range timetable {
 			url += modCode + "="
-			for classType
+			for classType, classNo := range moduleMap {
+				url += classType + ":" + classNo + ","
+				// fmt.Println("classType:", classType, "classNo", classNo)
+			}
+			// once the module's slots finish
+			url += "&"
 		}
+		fiveLinks = append(fiveLinks, url[:len(url)-1])
 	}
 
-	fmt.Println(modTypeNoMapList)
+	fmt.Println(fiveLinks)
 }
