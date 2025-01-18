@@ -41,3 +41,14 @@ func CreateGraph(lessonSlotList []models.LessonSlot) Graph {
 	}
 	return graph
 }
+
+func (graph Graph) IsAdjacent(mod models.LessonSlot, set []models.LessonSlot) bool {
+	for _, module := range set {
+		if _, exists := graph[mod][module]; exists {
+			// fmt.Println("Found adjacent module",*mod, "->", module)
+			return true
+		}
+	}
+	// fmt.Println("No adjacent module found for", *mod)
+	return false
+}
