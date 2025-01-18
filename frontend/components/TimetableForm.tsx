@@ -161,7 +161,6 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
               "cs2040s",
               "is1128",
               "ma1522"
-          
             ],
             "freeDays": [
               "Monday",
@@ -179,9 +178,23 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
         alert(errorMessage);
         return;
       }
-
+      
       alert("Timetable generated successfully!");
-      // onGenerate(requestData);
+      onGenerate({
+        "mods": [
+              "cs2030s",
+              "cs2040s",
+              "is1128",
+              "ma1522"
+            ],
+            "freeDays": [
+              "Monday",
+              "Wednesday"
+            ],
+            "semester":2,
+            "earliestTime": "0900",
+            "latestTime": "1700"
+    });
     } catch (error) {
       console.error("Network error:", error);
       alert("Failed to generate timetable due to a network error.");

@@ -1,25 +1,20 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
-interface Timetable {
-  rank: number;
-  mods?: string[];
-  freeDays?: string[];
-  earliestTime?: string;
-  latestTime?: string;
+interface TimetableData {
+  generatedURL: string;
+  previewImage?: string;
 }
 
 interface TimetableDisplayProps {
-  timetables: Timetable[];
+  timetables: TimetableData[];
 }
 
-// Timetable Display Component
 export default function TimetableDisplay({ timetables }: TimetableDisplayProps) {
-  const [hoveredTimetable, setHoveredTimetable] = useState<Timetable | null>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  // No timetables displayed
   if (!timetables || timetables.length === 0) {
     return (
-      <div className="w-full md:w-2/3 p-6 flex justify-center items-center">
+      <div className="w-full min-h-screen p-6 flex justify-center items-center">
         <h2 className="text-lg text-gray-400">
           No timetables generated yet. Start by entering criteria!
         </h2>
@@ -27,58 +22,32 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
     );
   }
 
-  // Display timetables
   return (
-    <div className="w-full md:w-2/3 bg-mainbg p-6 rounded-lg shadow-lg relative">
+    <div className="w-full min-h-screen bg-mainbg p-6 flex flex-col items-center">
       <h2 className="text-2xl font-bold text-orange mb-6 text-center">
         Generated Timetables
       </h2>
-      <div className="space-y-4">
+      <div className="flex flex-col items-center w-full space-y-6">
         {timetables.map((timetable, index) => (
           <div
             key={index}
-            className="bg-header shadow-md rounded-lg p-4 hover:scale-105 transition-transform duration-300 relative"
-            onMouseEnter={() => setHoveredTimetable(timetable)}
-            onMouseLeave={() => setHoveredTimetable(null)}
+            className="w-11/12 max-w-xl bg-header shadow-md rounded-lg p-4 relative cursor-pointer hover:scale-105 transition-transform duration-300"
+            onMouseEnter={() => setHoveredIndex(index)}
+            onMouseLeave={() => setHoveredIndex(null)}
+            onClick={() => window.open(timetable.generatedURL, "_blank")}
           >
-            <h3 className="text-lg font-bold text-orange">
-              Rank #{timetable.rank}
+            <h3 className="text-lg font-bold text-orange text-center">
+              Timetable {index + 1}
             </h3>
-            <p className="text-gray-300 mt-2">
-              Modules: {Array.isArray(timetable.mods) && timetable.mods.length > 0
-                ? timetable.mods.join(", ")
-                : "No modules specified"}
-            </p>
-            <p className="text-gray-300">
-              Days: {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
-                ? timetable.freeDays.join(", ")
-                : "None"}
-            </p>
-            <p className="text-gray-300">
-              Time: {timetable.earliestTime || "N/A"} to {timetable.latestTime || "N/A"}
-            </p>
 
             {/* Hover Preview */}
-            {hoveredTimetable === timetable && (
-              <div className="absolute top-0 right-[-260px] bg-header p-6 shadow-lg rounded-lg w-64 animate-fade-in z-10">
-                <h3 className="text-xl font-bold text-orange mb-2">
-                  Timetable Preview
-                </h3>
-                <p className="text-gray-300 whitespace-pre-line">
-                  <strong>Modules:</strong>{" "}
-                  {Array.isArray(timetable.mods) && timetable.mods.length > 0
-                    ? timetable.mods.join(", ")
-                    : "No modules specified"}
-                </p>
-                <p className="text-gray-300 mt-2">
-                  <strong>Days:</strong>{" "}
-                  {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
-                    ? timetable.freeDays.join(", ")
-                    : "None"}
-                </p>
-                <p className="text-gray-300 mt-2">
-                  <strong>Time:</strong> {timetable.earliestTime || "N/A"} to {timetable.latestTime || "N/A"}
-                </p>
+            {hoveredIndex === index && timetable.previewImage && (
+              <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center rounded-lg z-10">
+                <img
+                  src={timetable.previewImage}
+                  alt={`Preview for Timetable ${index + 1}`}
+                  className="max-w-full max-h-full rounded-md shadow-lg"
+                />
               </div>
             )}
           </div>
