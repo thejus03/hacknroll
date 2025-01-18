@@ -8,7 +8,7 @@ interface Timetable {
   activities: string[];
   location: string;
   freeDays: string[];
-  unfavorableTimings: string;
+  favourableTimings: string;
 }
 
 interface GenerateTimetablesProps {
@@ -31,7 +31,7 @@ const TimetablePage = () => {
       activities: [option],
       location: "NUS",
       freeDays: freeDays,
-      unfavorableTimings: excludedTimings.join(", "),
+      favourableTimings: excludedTimings.join(", "),
     }));
     setTimetables(mockTimetables);
   };

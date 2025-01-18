@@ -5,7 +5,7 @@ interface Timetable {
   activities?: string[];
   location?: string;
   freeDays?: string[];
-  unfavorableTimings?: string;
+  favourableTimings?: string;
 }
 
 interface TimetableDisplayProps {
@@ -55,7 +55,7 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
                 : "None"}
             </p>
             <p className="text-gray-300">
-              Unfavorable Timings: {timetable.unfavorableTimings || "None"}
+              Favourable Timings: {timetable.favourableTimings || "None"}
             </p>
 
             {/* Hover Preview */}
@@ -78,7 +78,7 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
                     : "None"}
                 </p>
                 <p className="text-gray-300 mt-2">
-                  <strong>Unfavorable Timings:</strong> {timetable.unfavorableTimings || "None"}
+                  <strong>Favourable Timings:</strong> {timetable.favourableTimings || "None"}
                 </p>
               </div>
             )}
