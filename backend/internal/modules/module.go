@@ -44,20 +44,14 @@ func GetAllModules(c *gin.Context) {
 }
 
 func Submit(c *gin.Context, venueData map[string][]float64) {
+	rawDataList, jsonData := modDataFromList(c, true)
+	freeDays := make(map[string]bool)
 
-	jsonData, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		fmt.Println("error reading json")
-		return
-	}
 	var userInput models.UserInput
 	if err := json.Unmarshal(jsonData, &userInput); err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
+		fmt.Println("Error unmarshalling JSON here:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
-		return
 	}
-	rawDataList := modDataFromList(userInput.ChosenLessons)
-	freeDays := make(map[string]bool)
 	for _, day := range userInput.FreeDays {
 		freeDays[day] = true
 	}
@@ -103,7 +97,6 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 }
 
 func cleanData(rawDataList []any, semester int, venueData map[string][]float64, freeDays map[string]bool) (map[models.Lesson]map[string][]models.Slot, []models.Lesson, error) {
-	// var filtered []models.LessonSlot
 	// filtering
 	const timeLayout = "1504"
 	var lessonToClassNoToSlotListMap = make(map[models.Lesson]map[string][]models.Slot)
@@ -116,10 +109,7 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			fmt.Println("eachModRawData is not a map[string]any")
 			continue
 		}
-		// semesterData:= semesterData.([]map[string]any)
 		semesterData, ok := modDataMap["semesterData"].([]any)
-		// semesterData, ok := modDataMap["semesterData"].([]map[string]any) // the actual type
-		// fmt.Println(semester, semesterData)
 		if !ok {
 			return nil, nil, fmt.Errorf("cannot access semesterData")
 		}
@@ -305,8 +295,30 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 	fmt.Println(fiveLinks)
 }
 
-func modDataFromList(chosenLessons []string) []any {
+func modDataFromList(c *gin.Context, isSubmit bool) ([]any, []byte) {
 	var rawDataList []any
+	jsonData, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		fmt.Println("error reading json")
+		return nil, nil
+	}
+	var chosenLessons []string
+	if !isSubmit {
+		var chosenLessonMap map[string][]string
+		if err := json.Unmarshal(jsonData, &chosenLessonMap); err != nil {
+			fmt.Println("Error unmarshalling JSON:", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+			return nil, nil
+		}
+		chosenLessons = chosenLessonMap["modules"]
+	} else {
+		var userInput models.UserInput
+		if err := json.Unmarshal(jsonData, &userInput); err != nil {
+			fmt.Println("Error unmarshalling JSON:", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		}
+		chosenLessons = userInput.ChosenLessons
+	}
 	for _, modCode := range chosenLessons {
 		url := fmt.Sprintf("https://api.nusmods.com/v2/2024-2025/modules/%s.json", strings.ToUpper(modCode))
 		fmt.Println("url:", url)
@@ -323,10 +335,86 @@ func modDataFromList(chosenLessons []string) []any {
 		rawDataList = append(rawDataList, data)
 		defer resp.Body.Close()
 	}
-	return rawDataList
+	return rawDataList, jsonData
+
 }
 
-func CheckFreeDays(c *gin.Context) {
-	rawDataList := modDataFromList(c) //make this global variable
+func CheckFreeDays(c *gin.Context, semester int) {
+
+	rawDataList, _ := modDataFromList(c, false) //make this global variable
+	// go through each slot and make a map
+	modToDays := make(map[string][]string)
+	// where the key is the module code and value is all the freeDays
+	twoDArray := [][]string{}
+	for _, eachModRawData := range rawDataList {
+		modDataMap, ok := eachModRawData.(map[string]any)
+		if !ok {
+			fmt.Println("eachModRawData is not a map[string]any")
+			continue
+		}
+		modCode := modDataMap["moduleCode"]
+		modCodeString, ok := modCode.(string)
+		if !ok {
+			fmt.Println("modCode cannot be a string")
+			continue
+		}
+		// semesterData:= semesterData.([]map[string]any)
+		semesterData, ok := modDataMap["semesterData"].([]any)
+		// semesterData, ok := modDataMap["semesterData"].([]map[string]any) // the actual type
+		// fmt.Println(semester, semesterData)
+		if !ok {
+			return
+		}
+
+		var eachModSemData map[string]any
+		for _, data := range semesterData {
+			assertedData := data.(map[string]any)
+			if sem, ok := assertedData["semester"]; ok && int(sem.(float64)) == semester {
+				eachModSemData = data.(map[string]any)
+				break
+			}
+		}
+		for _, slotInterface := range eachModSemData["timetable"].([]any) {
+			slot, ok := slotInterface.(map[string]any)
+			lessonType, ok := slot["lessonType"].(string)
+			if !ok {
+				return
+			}
+			// lessonType, ok := slot["lessonType"].(string)
+			if !ok {
+				return
+			}
+			dayString, ok := slot["day"].(string) // only one day
+			if !ok {
+				return
+			}
+			// ignore adding to the mandatory lesson days if it is a lecture
+			if lessonType == "Lecture" {
+				continue
+			}
+			if _, exists := modToDays[modCodeString]; !exists {
+				modToDays[modCodeString] = []string{dayString}
+			} else {
+				// only add the day if it is not already in the list
+				addDay := true
+				for _, day := range modToDays[modCodeString] {
+					if day == dayString {
+						addDay = false
+						continue
+					}
+				}
+				if addDay {
+					modToDays[modCodeString] = append(modToDays[modCodeString], dayString)
+				}
+			}
+		}
+		fmt.Println("modToDays:", modToDays)
+	}
+	for _, days := range modToDays {
+		// for all the mods if the days are common
+		twoDArray = append(twoDArray, days)
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": twoDArray})
+	// [[Monday, Tuesday], [Monday, Wednesday], [Thursday]]
 
 }
