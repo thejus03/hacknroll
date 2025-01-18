@@ -35,13 +35,5 @@ func (s1 Slot) IsEqual(s2 Slot) bool {
 	if s1.LocationObject.X != s2.LocationObject.X && s1.LocationObject.Y != s2.LocationObject.Y {
 		return false
 	}
-	// if len(s1.Weeks) != len(s2.Weeks) {
-	// 	return false
-	// }
-	// for i, week := range s1.Weeks {
-	// 	if week != s2.Weeks[i] {
-	// 		return false
-	// 	}
-	// }
 	return true
 }
