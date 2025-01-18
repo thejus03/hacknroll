@@ -109,6 +109,7 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 	var lessonToClassNoToSlotListMap = make(map[models.Lesson]map[string][]models.Slot)
 	var lessonList []models.Lesson
 	slotCount := 0 // tracking foer performance
+	// iterate through each module
 	for _, eachModRawData := range rawDataList {
 		modDataMap, ok := eachModRawData.(map[string]any)
 		if !ok {
@@ -122,6 +123,8 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 		if !ok {
 			return nil, nil, fmt.Errorf("cannot access semesterData")
 		}
+
+		// get semester data
 		var eachModSemData map[string]any
 		for _, data := range semesterData {
 			assertedData := data.(map[string]any)
@@ -131,6 +134,7 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 				break
 			}
 		}
+		// iterate through each slot for the module
 		for _, slotInterface := range eachModSemData["timetable"].([]any) {
 			slot, ok := slotInterface.(map[string]any)
 			if !ok {
@@ -179,58 +183,54 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			// Check the JSON for location coordinates
 			var locationInstance models.Location
 			var slotInstance models.Slot
-			noMatch := true
-			//venueData is from json
-			for key, locationValue := range venueData {
-				if key == venue {
-					noMatch = false
-					// fmt.Println("venue:", venue, "key:", key)
-					// validLocation = true
-					if !ok {
-						return nil, nil, fmt.Errorf("location is not a map[string]any")
-					}
-					x := locationValue[0]
-					y := locationValue[1]
-					locationInstance = models.Location{
-						Name: key,
-						X:    x,
-						Y:    y,
-					}
-					break
-				} else {
 
-				}
+			x:=venueData[venue][0]
+			y:=venueData[venue][1]
+
+			locationInstance = models.Location{
+				Name: venue,
+				X:    x,
+				Y:    y,
 			}
-			if noMatch {
-				fmt.Println("no match found for venue:", venue)
-				locationInstance = models.Location{
-					Name: venue,
-					X:    0,
-					Y:    0,
+
+			avoid := false
+			// Check if this slot can be merged 	
+			if SlotList, exists := lessonToClassNoToSlotListMap[lessonInstance]; exists {
+				for _, slots := range SlotList {
+					for _, slot := range slots {
+						if slot.StartTime.Equal(startTime) && slot.EndTime.Equal(endTime) && slot.Day == day {
+							slotvenue := extractBuildingName(slot.LocationObject.Name)
+							if slotvenue == venue {
+								avoid = true	
+								break
+							}
+						}
+					}
 				}
 			}
 
-			if len(locationInstance.Name) == 0 {
-				fmt.Println(lessonInstance.ModuleCode, " has no location:")
+			if avoid {
 				continue
 			}
+			
 			slotCount++ // slot count is lesser  than previous commit
 			slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
 
+
+			// If class no is the same then we are creating array of slots w same class no
 			mapKeyExists := false
 			for key, classNoMap := range lessonToClassNoToSlotListMap {
 				// if same Lesson Type,
 				if key == lessonInstance {
 					mapKeyExists = true
-					// check if the day, time and same x,y coordinate are the same, if so , dont add
-					// append to the list
-					// check if the class number is the same
 					classNoSame := false
 					for classNoKey, slotArr := range classNoMap {
 						if classNoKey == classNo {
 							classNoSame = true
 							slotArr = append(slotArr, slotInstance)
 						}
+						classNoMap[classNoKey] = slotArr
+						break
 					}
 					if !classNoSame {
 						classNoMap[classNo] = []models.Slot{slotInstance}
@@ -239,7 +239,7 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			}
 			if !mapKeyExists {
 				// initialise the key/value pair
-				lessonToClassNoToSlotListMap[lessonInstance] = map[string][]models.Slot{classNo: []models.Slot{slotInstance}}
+				lessonToClassNoToSlotListMap[lessonInstance] = map[string][]models.Slot{classNo: {slotInstance}}
 				lessonList = append(lessonList, lessonInstance)
 			}
 		}
@@ -256,6 +256,7 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 
 func extractBuildingName(key string) string {
 	parts := strings.SplitN(key, "-", 2)
+	// fmt.Println("parts:", parts[0])
 	return parts[0] // Return the part before '-' or the whole key if '-' is absent
 }
 
@@ -281,7 +282,7 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 			case "Recitation":
 				lessonType = "REC"
 			}
-			fmt.Println("lessonType:", lessonType)
+			// fmt.Println("lessonType:", lessonType)
 			modTypeNoMap[lessonSlotVar.Lesson.ModuleCode][lessonType] = lessonSlotVar.Slot.ClassNo
 		}
 		modTypeNoMapList = append(modTypeNoMapList, modTypeNoMap)
