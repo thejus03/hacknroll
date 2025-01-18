@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/thejus03/hacknroll/backend/internal/models"
 )
 
 func GetAllModules(c *gin.Context) {
@@ -42,6 +43,12 @@ func Submit(c *gin.Context, venueData map[string]any) {
 	jsonData, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		fmt.Println("error reading json")
+		return
+	}
+	var userInput models.UserInput
+	if err := json.Unmarshal(jsonData, &userInput); err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
 	}
 
