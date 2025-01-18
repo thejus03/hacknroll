@@ -70,4 +70,9 @@ func Submit(c *gin.Context, venueData map[string]any) {
 		defer resp.Body.Close()
 	}
 
+	freeDays := make(map[string]bool)
+	for _, day := range userInput.FreeDays {
+		freeDays[day] = true
+	}
+
 }
