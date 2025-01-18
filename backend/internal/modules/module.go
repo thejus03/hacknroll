@@ -184,8 +184,10 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64) 
 			// Check the JSON for location coordinates
 			var locationInstance models.Location
 			var slotInstance models.Slot
+			noMatch := true
 			for key, locationValue := range venueData {
 				if key == venue {
+					noMatch = false
 					fmt.Println("venue:", venue, "key:", key)
 					// validLocation = true
 					if !ok {
@@ -200,12 +202,15 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64) 
 					}
 					break
 				} else {
-					locationInstance = models.Location{
-						Name: venue,
-						X:    0,
-						Y:    0,
-					}
 
+				}
+			}
+			if noMatch {
+				fmt.Println("no match found for venue:", venue)
+				locationInstance = models.Location{
+					Name: venue,
+					X:    0,
+					Y:    0,
 				}
 			}
 
