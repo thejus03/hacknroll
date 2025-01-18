@@ -35,6 +35,30 @@ func (t *TupleHeap) Pop() interface{} {
 	return x
 }
 
+func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson][]models.Slot, chosen_lessonslots []models.LessonSlot, timetables *[][]models.LessonSlot, graph graph.Graph, freeDays map[string]bool) {
+	// Keep track of which lesson we are at. Then for loop to check if not adjacent then add and recursively track until you reach the end of lesson
+	if idx == len(lessons) {
+		*timetables = append(*timetables, chosen_lessonslots)
+		return
+	}
+
+	lesson := lessons[idx]
+	for _, slot := range lessonToSlots[lesson] {
+		lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
+		if _, exists := freeDays[slot.Day]; exists {
+			if lessonslot.Lesson.LessonType != "Lecture" {
+				continue
+			}
+		}
+		if !graph.IsAdjacent(lessonslot, chosen_lessonslots) {
+			chosen_lessonslots = append(chosen_lessonslots, lessonslot)
+			Backtrack(idx+1, lessons, lessonToSlots, chosen_lessonslots, timetables, graph, freeDays)
+			chosen_lessonslots = chosen_lessonslots[:len(chosen_lessonslots)-1]
+		}
+	}
+}
+
+
 func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson][]models.Slot, cutoff_timings map[string]time.Time, freeDays map[string]bool, graph graph.Graph) [][]models.LessonSlot {
 
 	// Sort the lessons in ascending order of number of slots
@@ -49,7 +73,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 	fmt.Println("Timetables possible", len(timetables))
 
 	// Call Backtracking function to find all possilbe timetables
-
+	Backtrack(0, lessons, lessonToSlots, []models.LessonSlot{}, &timetables, graph, freeDays)
 
 
 	// Get the number of workers to use
@@ -165,7 +189,7 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 		return -1
 	}
 	// only five days so not too bad in efficiency
-	for day, timings := range timetable {
+	for _, timings := range timetable {
 
 		prev_end_time := eightAM
 		var prev_location models.Location
@@ -174,23 +198,6 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 		for _, lessonslot := range timings {
 			// var location string = lessonslot.Slot.Location
 			start_time := lessonslot.Slot.StartTime
-			var lessontype string = lessonslot.Lesson.LessonType
-
-			if lessontype == "Lecture" {
-				if _, exists := freeDays[day]; exists {
-					score += 30
-				} else {
-					// its not the worst to have lectures on non-free days
-					score -= 15
-				}
-			} else {
-				// fmt.Println("LessonType:", lessontype)
-				if _, exists := freeDays[day]; exists {
-					score -= 20
-				} else {
-					score += 30
-				}
-			}
 
 			// Award for lectures on free days
 			end_time := lessonslot.Slot.EndTime
@@ -198,12 +205,12 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 			// Score based on location
 			if prev_location.Name != "" {
 				if lessonslot.Slot.LocationObject.X != 0 || lessonslot.Slot.LocationObject.Y != 0 {
-					prev := haversine.Coord{Lat: prev_location.X, Lon: prev_location.Y}
-					curr := haversine.Coord{Lat: lessonslot.Slot.LocationObject.X, Lon: lessonslot.Slot.LocationObject.Y}
+					prev := haversine.Coord{Lat: prev_location.Y, Lon: prev_location.X}
+					curr := haversine.Coord{Lat: lessonslot.Slot.LocationObject.Y, Lon: lessonslot.Slot.LocationObject.X}
 					_, km := haversine.Distance(prev, curr)
 	
 					// Penalise based locations between lessons
-					maxWalkDistance := 0.330
+					maxWalkDistance := 0.250
 					score += float32(-(10.0/maxWalkDistance)*km + 10.0)
 				}
 			}
@@ -213,7 +220,7 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 				score -= 25
 			} else {
 				// award points for being within the cutoff timings
-				score += 10
+				score += 50
 			}
 
 			// Score based on if had lunch // Notice the weird if-else because we want to penalise only if its not lunch time
@@ -233,9 +240,9 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 
 		// Score if had one hour break at least within 12 - 2 for lunch
 		if had_lunch {
-			score += 60
+			score += 100
 		} else {
-			score -= 50
+			score -= 40
 		}
 
 	}
