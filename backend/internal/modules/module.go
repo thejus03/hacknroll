@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,7 +45,7 @@ func GetAllModules(c *gin.Context) {
 }
 
 func Submit(c *gin.Context, venueData map[string][]float64) {
-	rawDataList, jsonData := modDataFromList(c, true)
+	rawDataList, jsonData, _ := modDataFromList(c, true)
 	freeDays := make(map[string]bool)
 
 	var userInput models.UserInput
@@ -287,18 +288,19 @@ func makeLink(c *gin.Context, lessonSlotList [][]models.LessonSlot) {
 			// once the module's slots finish
 			url += "&"
 		}
-		fiveLinks = append(fiveLinks, url[:len(url)-1])
+		fiveLinks = append(fiveLinks, url[:len(url)-2])
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": fiveLinks})
 	fmt.Println(fiveLinks)
 }
 
-func modDataFromList(c *gin.Context, isSubmit bool) ([]any, []byte) {
+func modDataFromList(c *gin.Context, isSubmit bool) ([]any, []byte, int) {
 	var rawDataList []any
+	var semester int
 	jsonData, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		fmt.Println("error reading json")
-		return nil, nil
+		return nil, nil, 2
 	}
 	var chosenLessons []string
 	if !isSubmit {
@@ -306,9 +308,16 @@ func modDataFromList(c *gin.Context, isSubmit bool) ([]any, []byte) {
 		if err := json.Unmarshal(jsonData, &chosenLessonMap); err != nil {
 			fmt.Println("Error unmarshalling JSON:", err)
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
-			return nil, nil
+			return nil, nil, 2
 		}
 		chosenLessons = chosenLessonMap["modules"]
+		semester, err = strconv.Atoi(chosenLessonMap["semester"][0])
+		if err != nil {
+			fmt.Println("Error converting semester to int:", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid semester format"})
+			return nil, nil, 2
+		}
+		fmt.Println("semester:", semester)
 	} else {
 		var userInput models.UserInput
 		if err := json.Unmarshal(jsonData, &userInput); err != nil {
@@ -333,13 +342,13 @@ func modDataFromList(c *gin.Context, isSubmit bool) ([]any, []byte) {
 		rawDataList = append(rawDataList, data)
 		defer resp.Body.Close()
 	}
-	return rawDataList, jsonData
+	return rawDataList, jsonData, semester
 
 }
 
-func CheckFreeDays(c *gin.Context, semester int) {
+func CheckFreeDays(c *gin.Context) {
 
-	rawDataList, _ := modDataFromList(c, false) //make this global variable
+	rawDataList, _, semester := modDataFromList(c, false) //make this global variable
 	// go through each slot and make a map
 	modToDays := make(map[string][]string)
 	// where the key is the module code and value is all the freeDays

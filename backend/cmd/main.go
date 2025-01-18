@@ -35,8 +35,8 @@ func main() {
 	venueData := make(map[string][]float64)
 
 	r.POST("/checkFreeDays", func(c *gin.Context) {
-		semester := 2
-		modules.CheckFreeDays(c, semester)
+		// semester := 2
+		modules.CheckFreeDays(c)
 	})
 
 	/// Post course data and free days
