@@ -266,10 +266,6 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 		counter *= uint64(len(classNoMap))
 	}
 	fmt.Println("multiplied slots:", counter)
-	testLesson := models.Lesson{ModuleCode: "CS2030S", LessonType: "Laboratory"}
-	fmt.Println(lessonToClassNoToSlotListMap[testLesson]["14J"])
-	fmt.Println(lessonToClassNoToSlotListMap[testLesson]["14G"])
-	// fmt.Println(len(lessonToClassNoToSlotListMap[testLesson]["1"]))
 	return lessonToClassNoToSlotListMap, lessonList, nil
 
 }
