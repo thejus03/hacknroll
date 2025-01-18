@@ -187,9 +187,9 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
           </div>
         </div>
 
-        {/* Unfavorable Timings */}
+        {/* Favourable Timings */}
         <div>
-          <label className="block text-sm font-medium text-orange">Unfavorable Timings</label>
+          <label className="block text-sm font-medium text-orange">Favourable Timings</label>
           <div className="flex items-center space-x-4 mt-2">
             <input
               type="time"
