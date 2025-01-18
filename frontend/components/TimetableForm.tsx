@@ -5,7 +5,7 @@ import { FaSearch } from "react-icons/fa";
 interface TimetableFormProps {
   onGenerate: (data: {
     options: string[];
-    semester: string;
+    semester: number;
     excludeDays: string[];
     excludedTimings: string[];
   }) => void;
@@ -14,7 +14,7 @@ interface TimetableFormProps {
 export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [query, setQuery] = useState<string>("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [semester, setSemester] = useState<string>("");
+  const [semester, setSemester] = useState<number | "">("");
   const [excludeDays, setExcludeDays] = useState<string[]>([]);
   const [excludedTimings, setExcludedTimings] = useState<string[]>([]);
   const [popupMessage] = useState<string>("");
@@ -93,7 +93,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
       alert("Please add at least one option!");
       return;
     }
-    onGenerate({ options: selectedOptions, semester, excludeDays, excludedTimings });
+    onGenerate({ options: selectedOptions, semester: Number(semester), excludeDays, excludedTimings });
   };
 
   return (
@@ -156,13 +156,14 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
         {/* Semester */}
         <div>
           <label className="block text-sm font-medium text-orange">Semester</label>
-          <input
-            type="text"
+          <select
             value={semester}
-            onChange={(e) => setSemester(e.target.value)}
-            className="w-full mt-1 bg-mainbg text-gray-300 rounded-md border border-gray-600 px-3 py-1 focus:outline-none focus:ring-2 focus:ring-orange"
-            placeholder="e.g., 1"
-          />
+            onChange={(e) => setSemester(Number(e.target.value))}
+            className="w-full mt-1 bg-mainbg text-gray-300 rounded-md border border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange appearance-none"
+          >
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
         </div>
 
         {/* Excluded Days */}

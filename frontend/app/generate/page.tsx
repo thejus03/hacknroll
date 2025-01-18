@@ -13,21 +13,24 @@ interface Timetable {
 
 interface GenerateTimetablesProps {
   options: string[];
-  semester: string;
+  semester: number;
   excludeDays: string[];
   excludedTimings: string[];
 }
 
-export default function TimetablePage() {
+const TimetablePage = () => {
   const [timetables, setTimetables] = useState<Timetable[]>([]);
 
   const generateTimetables = ({ options, semester, excludeDays, excludedTimings }: GenerateTimetablesProps): void => {
+    const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const freeDays = daysOfWeek.filter(day => !excludeDays.includes(day));
+
     // Create Timetable objects
     const mockTimetables = options.map((option, index) => ({
       rank: index + 1,
       activities: [option],
       location: "NUS",
-      freeDays: excludeDays,
+      freeDays: freeDays,
       unfavorableTimings: excludedTimings.join(", "),
     }));
     setTimetables(mockTimetables);
@@ -45,4 +48,6 @@ export default function TimetablePage() {
       </div>
     </div>
   );
-}
+};
+
+export default TimetablePage;
