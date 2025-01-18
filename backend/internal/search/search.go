@@ -203,7 +203,7 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 					_, km := haversine.Distance(prev, curr)
 	
 					// Penalise based locations between lessons
-					maxWalkDistance := 0.330
+					maxWalkDistance := 0.250
 					score += float32(-(10.0/maxWalkDistance)*km + 10.0)
 				}
 			}
@@ -213,7 +213,7 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 				score -= 25
 			} else {
 				// award points for being within the cutoff timings
-				score += 10
+				score += 50
 			}
 
 			// Score based on if had lunch // Notice the weird if-else because we want to penalise only if its not lunch time
@@ -233,9 +233,9 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 
 		// Score if had one hour break at least within 12 - 2 for lunch
 		if had_lunch {
-			score += 60
+			score += 100
 		} else {
-			score -= 50
+			score -= 40
 		}
 
 	}
