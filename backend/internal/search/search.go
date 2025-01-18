@@ -35,6 +35,30 @@ func (t *TupleHeap) Pop() interface{} {
 	return x
 }
 
+func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson][]models.Slot, chosen_lessonslots []models.LessonSlot, timetables *[][]models.LessonSlot, graph graph.Graph, freeDays map[string]bool) {
+	// Keep track of which lesson we are at. Then for loop to check if not adjacent then add and recursively track until you reach the end of lesson
+	if idx == len(lessons) {
+		*timetables = append(*timetables, chosen_lessonslots)
+		return
+	}
+
+	lesson := lessons[idx]
+	for _, slot := range lessonToSlots[lesson] {
+		lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
+		if _, exists := freeDays[slot.Day]; exists {
+			if lessonslot.Lesson.LessonType != "Lecture" {
+				continue
+			}
+		}
+		if !graph.IsAdjacent(lessonslot, chosen_lessonslots) {
+			chosen_lessonslots = append(chosen_lessonslots, lessonslot)
+			Backtrack(idx+1, lessons, lessonToSlots, chosen_lessonslots, timetables, graph, freeDays)
+			chosen_lessonslots = chosen_lessonslots[:len(chosen_lessonslots)-1]
+		}
+	}
+}
+
+
 func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson][]models.Slot, cutoff_timings map[string]time.Time, freeDays map[string]bool, graph graph.Graph) [][]models.LessonSlot {
 
 	// Sort the lessons in ascending order of number of slots
@@ -49,7 +73,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 	fmt.Println("Timetables possible", len(timetables))
 
 	// Call Backtracking function to find all possilbe timetables
-
+	Backtrack(0, lessons, lessonToSlots, []models.LessonSlot{}, &timetables, graph, freeDays)
 
 
 	// Get the number of workers to use
