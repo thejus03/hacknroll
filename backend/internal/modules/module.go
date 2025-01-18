@@ -44,7 +44,19 @@ func GetAllModules(c *gin.Context) {
 }
 
 func Submit(c *gin.Context, venueData map[string][]float64) {
-	userInput := modDataFromList(c)
+
+	jsonData, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		fmt.Println("error reading json")
+		return
+	}
+	var userInput models.UserInput
+	if err := json.Unmarshal(jsonData, &userInput); err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
+		return
+	}
+	rawDataList := modDataFromList(userInput.ChosenLessons)
 	freeDays := make(map[string]bool)
 	for _, day := range userInput.FreeDays {
 		freeDays[day] = true
@@ -292,20 +304,9 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 	fmt.Println(fiveLinks)
 }
 
-func modDataFromList(c *gin.Context) models.UserInput {
-	jsonData, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		fmt.Println("error reading json")
-		return models.UserInput{}
-	}
-	var userInput models.UserInput
-	if err := json.Unmarshal(jsonData, &userInput); err != nil {
-		fmt.Println("Error unmarshalling JSON:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
-		return models.UserInput{}
-	}
+func modDataFromList(chosenLessons []string) []any {
 	var rawDataList []any
-	for _, modCode := range userInput.ChosenLessons {
+	for _, modCode := range chosenLessons {
 		url := fmt.Sprintf("https://api.nusmods.com/v2/2024-2025/modules/%s.json", strings.ToUpper(modCode))
 		fmt.Println("url:", url)
 		resp, err := http.Get(url)
@@ -321,5 +322,10 @@ func modDataFromList(c *gin.Context) models.UserInput {
 		rawDataList = append(rawDataList, data)
 		defer resp.Body.Close()
 	}
-	return userInput
+	return rawDataList
+}
+
+func CheckFreeDays(c *gin.Context) {
+	rawDataList := modDataFromList(c) //make this global variable
+
 }
