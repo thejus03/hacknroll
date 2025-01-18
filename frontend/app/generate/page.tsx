@@ -8,30 +8,29 @@ interface Timetable {
   activities: string[];
   location: string;
   freeDays: string[];
-  favourableTimings: string;
 }
 
 interface GenerateTimetablesProps {
-  options: string[];
+  mods: string[];
   semester: number;
-  excludeDays: string[];
-  excludedTimings: string[];
+  freeDays: string[];
+  // favourableTimings: string;
 }
 
 const TimetablePage = () => {
   const [timetables, setTimetables] = useState<Timetable[]>([]);
 
-  const generateTimetables = ({ options, semester, excludeDays, excludedTimings }: GenerateTimetablesProps): void => {
+  const generateTimetables = ({ mods, semester, freeDays }: GenerateTimetablesProps): void => {
     const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-    const freeDays = daysOfWeek.filter(day => !excludeDays.includes(day));
+    const availableDays = daysOfWeek.filter(day => !freeDays.includes(day));
 
     // Create Timetable objects
-    const mockTimetables = options.map((option, index) => ({
+    const mockTimetables = mods.map((option, index) => ({
       rank: index + 1,
       activities: [option],
       location: "NUS",
-      freeDays: freeDays,
-      favourableTimings: excludedTimings.join(", "),
+      freeDays: availableDays,
+      // favourableTimings: favourableTimings,
     }));
     setTimetables(mockTimetables);
   };

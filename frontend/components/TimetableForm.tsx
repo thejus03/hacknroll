@@ -4,25 +4,27 @@ import { FaSearch } from "react-icons/fa";
 
 interface TimetableFormProps {
   onGenerate: (data: {
-    options: string[];
+    mods: string[];
     semester: number;
-    excludeDays: string[];
-    excludedTimings: string[];
+    freeDays: string[];
+    currentStartTime: string,
+    currentEndTime: string,
+    // favourableTimings: string[];
   }) => void;
 }
 
 export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [query, setQuery] = useState<string>("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [semester, setSemester] = useState<number | "">("");
-  const [excludeDays, setExcludeDays] = useState<string[]>([]);
-  const [excludedTimings, setExcludedTimings] = useState<string[]>([]);
+  const [semester, setSemester] = useState(1);
+  const [freeDays, setExcludeDays] = useState<string[]>([]);
   const [popupMessage] = useState<string>("");
   const [currentStartTime, setCurrentStartTime] = useState<string>("07:00");
   const [currentEndTime, setCurrentEndTime] = useState<string>("08:00");
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const [options, setOptions] = useState<string[]>([]);
-
+  const [mods, setOptions] = useState<string[]>([]);
+  // const [favourableTimings, setFavourableTimings] = useState<string[]>([]);
+  
   const daysOfWeek: string[] = [
     "Monday",
     "Tuesday",
@@ -35,7 +37,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
   useEffect(() => {
     getOptions();
-    console.log(options);
+    console.log(mods);
   }, []);
 
   const getOptions = async (): Promise<void> => {
@@ -53,47 +55,102 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     }
   };
 
-  const filteredOptions = options.filter((option) =>
+  const filteredOptions = mods.filter((option) =>
     option.toUpperCase().includes(query.toUpperCase())
   ).slice(0, 5);
 
+  const submitResult = async (selectedOptions: string[]) => {
+    try {
+      const response = await fetch("https://localhost:8080/submitResult", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mods: selectedOptions }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to submit options");
+      }
+      console.log("Options submitted successfully");
+    } catch (error) {
+      console.log(selectedOptions)
+      console.error("Error submitting options", error);
+    }
+  };
+
+  useEffect(() => {
+    submitResult(selectedOptions);
+  }, [selectedOptions]);
+
   const handleAddOption = (option: string): void => {
-    setSelectedOptions([...selectedOptions, option]);
+    setSelectedOptions((prevOptions) => {
+      const updatedOptions = [...prevOptions, option];
+      return updatedOptions;
+    });
     setQuery(""); // Clear the search query
   };
 
   const handleRemoveOption = (index: number): void => {
-    setSelectedOptions((prevOptions) =>
-      prevOptions.filter((_, i) => i !== index)
-    );
+    setSelectedOptions((prevOptions) => {
+      const updatedOptions = prevOptions.filter((_, i) => i !== index);
+      return updatedOptions;
+    });
   };
 
   const toggleExcludeDay = (day: string): void => {
-    const newExcludedDays = excludeDays.includes(day)
-      ? excludeDays.filter((d) => d !== day)
-      : [...excludeDays, day];
+    const newExcludedDays = freeDays.includes(day)
+      ? freeDays.filter((d) => d !== day)
+      : [...freeDays, day];
 
     setExcludeDays(newExcludedDays);
   };
 
-  const addExcludedTiming = (): void => {
-    const newTiming = `${currentStartTime} - ${currentEndTime}`;
-    setExcludedTimings([...excludedTimings, newTiming]);
-  };
-
-  const handleRemoveTiming = (index: number): void => {
-    setExcludedTimings((prevTimings) =>
-      prevTimings.filter((_, i) => i !== index)
-    );
-  };
-
-  const handleSubmit = (e: FormEvent): void => {
+  const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
+  
     if (selectedOptions.length === 0) {
       alert("Please add at least one option!");
       return;
+      }
+    
+  
+    // const favourableTimings = [`${currentStartTime} - ${currentEndTime}`];
+    
+    const requestData = {
+      mods: selectedOptions,
+      freeDays: freeDays,
+      semester: Number(semester),
+      currentStartTime,
+      currentEndTime,
     }
-    onGenerate({ options: selectedOptions, semester: Number(semester), excludeDays, excludedTimings });
+  
+    try {
+      const response = await fetch("http://localhost:8080/getSlots", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
+      });
+  
+      if (!response.ok) {
+        console.log("Request data:", requestData);
+        const errorMessage = `Failed to submit options. Status: ${response.status}`;
+        console.error(errorMessage);
+        alert(errorMessage);
+        return;
+      }
+  
+      alert("Options submitted successfully!");
+      console.log("Response:", await response.json());
+    } catch (error) {
+      console.error("Network error:", error);
+      alert("Failed to submit options due to a network error.");
+      return;
+    }
+  
+    // Call onGenerate only after successful submission
+    onGenerate(requestData);
   };
 
   return (
@@ -168,7 +225,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
         {/* Excluded Days */}
         <div>
-          <label className="block text-sm font-medium text-orange">Excluded Days</label>
+          <label className="block text-sm font-medium text-orange">Choose days to be free</label>
           <div className="flex flex-wrap gap-2 mt-2">
             {daysOfWeek.map((day) => (
               <button
@@ -176,7 +233,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
                 key={day}
                 onClick={() => toggleExcludeDay(day)}
                 className={`px-3 py-1 rounded-md ${
-                  excludeDays.includes(day)
+                  freeDays.includes(day)
                     ? "bg-orange text-white"
                     : "bg-mainbg text-gray-300 border border-gray-600"
                 } hover:bg-orange hover:text-white transition-all duration-200`}
@@ -204,33 +261,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
               onChange={(e) => setCurrentEndTime(e.target.value)}
               className="bg-mainbg text-gray-300 border border-gray-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-orange"
             />
-            <button
-              type="button"
-              onClick={addExcludedTiming}
-              className="bg-orange text-white px-4 py-2 rounded-md hover:bg-orange-700 transition-all duration-300"
-            >
-              Add
-            </button>
           </div>
-          {/* Display Excluded Timings */}
-          {excludedTimings.length > 0 && (
-            <ul className="mt-4 space-y-2">
-              {excludedTimings.map((timing, index) => (
-                <li
-                  key={index}
-                  className="flex justify-between items-center bg-mainbg p-3 rounded-md shadow-md"
-                >
-                  <span className="text-gray-300">{timing}</span>
-                  <button
-                    onClick={() => handleRemoveTiming(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
         {/* Submit Button */}

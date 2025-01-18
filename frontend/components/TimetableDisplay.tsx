@@ -50,7 +50,7 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
             </p>
             <p className="text-gray-300">Location: {timetable.location || "Not specified"}</p>
             <p className="text-gray-300">
-              Days Off: {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
+              Days: {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
                 ? timetable.freeDays.join(", ")
                 : "None"}
             </p>
@@ -73,7 +73,7 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
                   <strong>Location:</strong> {timetable.location || "Not specified"}
                 </p>
                 <p className="text-gray-300 mt-2">
-                  <strong>Days Off:</strong> {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
+                  <strong>Days:</strong> {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
                     ? timetable.freeDays.join(", ")
                     : "None"}
                 </p>
