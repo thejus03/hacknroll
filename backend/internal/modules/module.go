@@ -287,7 +287,7 @@ func makeLink(c *gin.Context, lessonSlotList [][]models.LessonSlot) {
 			// once the module's slots finish
 			url += "&"
 		}
-		fiveLinks = append(fiveLinks, url[:len(url)-1])
+		fiveLinks = append(fiveLinks, url[:len(url)-2])
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": fiveLinks})
 	fmt.Println(fiveLinks)
