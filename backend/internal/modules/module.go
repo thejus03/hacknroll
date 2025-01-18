@@ -91,7 +91,17 @@ func Submit(c *gin.Context, venueData map[string]any) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid latest time format"})
 		return
 	}
-
+	cutoff_timings := map[string]time.Time{"earliest": earliestTime, "latest": latestTime}
+	lessonToSlotListMap, lessons, nil := cleanData(rawDataList, semester, venueData, 0.300)
+	// use cleaned data to make a list to make a graph
+	var lessonSlotList []models.LessonSlot
+	for lesson, slotList := range lessonToSlotListMap {
+		for _, slot := range slotList {
+			lessonSlotList = append(lessonSlotList, models.LessonSlot{Lesson: lesson, Slot: slot})
+		}
+	}
+	graph := graph.CreateGraph(lessonSlotList)
+	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToSlotListMap, cutoff_timings, freeDays, graph)
 }
 
 func cleanData(rawDataList []any, semester int, venueData map[string][]float64, maxDistance float64) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
@@ -123,6 +133,114 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 				break
 			}
 		}
+		for _, slotInterface := range eachModSemData["timetable"].([]any) {
+			slot, ok := slotInterface.(map[string]any)
+			if !ok {
+				return nil, nil, fmt.Errorf("slot is not a map[string]any")
+			}
+			lessonType, ok := slot["lessonType"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("lessonType is not a string")
+			}
+			day, ok := slot["day"].(string) // only one day
+			if !ok {
+				return nil, nil, fmt.Errorf("day is not a string")
+			}
+			startTimeStr, ok := slot["startTime"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("startTime is not a string")
+			}
+			startTime, err := time.Parse(timeLayout, startTimeStr)
+			if err != nil {
+				return nil, nil, fmt.Errorf("startTime is not in the correct format")
+			}
+			endTimeStr, ok := slot["endTime"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("endTime is not a string")
+			}
+
+			endTime, err := time.Parse(timeLayout, endTimeStr)
+			if err != nil {
+				return nil, nil, err
+			}
+			classNo, ok := slot["classNo"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("classNo is not a string")
+			}
+			venue, ok := slot["venue"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("venue is not a string")
+			}
+			lessonInstance := models.Lesson{ModuleCode: modDataMap["moduleCode"].(string), LessonType: lessonType}
+			// Check the JSON for location coordinates
+			var locationInstance models.Location
+			var slotInstance models.Slot
+			for key, locationValue := range venueData {
+				// if key == venue {
+				if strings.Contains(venue, key) {
+					fmt.Println("venue:", venue, "key:", key)
+					// validLocation = true
+					if !ok {
+						return nil, nil, fmt.Errorf("location is not a map[string]any")
+					}
+					x := locationValue[0]
+					y := locationValue[1]
+					locationInstance = models.Location{
+						Name: key,
+						X:    x,
+						Y:    y,
+					}
+					break
+				} else {
+					locationInstance = models.Location{
+						Name: venue,
+						X:    0,
+						Y:    0,
+					}
+
+				}
+			}
+
+		}
+		if len(locationInstance.Name) == 0 {
+			// fmt.Println(lessonInstance.ModuleCode, " has no location:")
+			continue
+		}
+		if lessonType == "Recitation" {
+			fmt.Println("RECITATION:", lessonInstance, "mod: ", lessonInstance.ModuleCode, "location:", venue)
+		}
+		slotCount++ // slot count is lesser  than previous commit
+		slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
+
+		mapKeyExists := false
+		for key, value := range lessonToSlotListMap {
+			if key == lessonInstance {
+				mapKeyExists = true
+				// check if the day, time and same x,y coordinate are the same, if so , dont add
+				// append to the list
+				slotExists := false
+				for _, slot := range value {
+					if slot.IsEqual(slotInstance) {
+						slotExists = true
+						break
+					}
+				}
+				if !slotExists {
+					// fmt.Println("appnding to the list")
+					lessonToSlotListMap[key] = append(lessonToSlotListMap[key], slotInstance)
+				}
+			}
+		}
+		if !mapKeyExists {
+			lessonToSlotListMap[lessonInstance] = []models.Slot{slotInstance}
+			lessonList = append(lessonList, lessonInstance)
+		}
+
 	}
+	fmt.Println("slots created:", slotCount)
+	for lesson, slotList := range lessonToSlotListMap {
+		fmt.Println(lesson, ":", len(slotList))
+	}
+	return lessonToSlotListMap, lessonList, nil
 
 }
