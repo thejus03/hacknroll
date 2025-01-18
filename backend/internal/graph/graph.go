@@ -32,7 +32,7 @@ func CreateGraph(lessonSlotList []models.LessonSlot) Graph {
 				if _, exists := graph[otherLessonSlot]; !exists {
 					graph[otherLessonSlot] = make(map[models.LessonSlot]struct{})
 				}
-				// Add modules[j] as an adjacent module and vice versa since the graph is undirected
+				// Add modules[j] as an adjacent module and vice versa since the graph is undirected	
 				graph[lessonSlot][otherLessonSlot] = struct{}{}
 				graph[otherLessonSlot][lessonSlot] = struct{}{}
 				// fmt.Println("Added edge between", lessonSlot, "and", otherLessonSlot)

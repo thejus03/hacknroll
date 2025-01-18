@@ -247,6 +247,8 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 							classNoSame = true
 							slotArr = append(slotArr, slotInstance)
 						}
+						classNoMap[classNoKey] = slotArr
+						break
 					}
 					if !classNoSame {
 						classNoMap[classNo] = []models.Slot{slotInstance}
@@ -266,6 +268,9 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 		counter *= uint64(len(classNoMap))
 	}
 	fmt.Println("multiplied slots:", counter)
+	testLesson:=models.Lesson{ModuleCode: "CS2040S", LessonType: "Lecture"}
+	fmt.Println(lessonToClassNoToSlotListMap[testLesson])
+	fmt.Println(len(lessonToClassNoToSlotListMap[testLesson]["1"]))
 	return lessonToClassNoToSlotListMap, lessonList, nil
 
 }
