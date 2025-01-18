@@ -4,8 +4,9 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"github.com/gin-contrib/cors"
 	"os"
+
+	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/thejus03/hacknroll/backend/internal/modules"
@@ -18,21 +19,22 @@ type Room struct {
 
 //go:embed venues.json
 var venuesJson []byte
+
 func main() {
-	host := "localhost"	
+	host := "localhost"
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{fmt.Sprintf("http://%s:3000", host)},       // Frontend URL
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE"},            // Allowed HTTP methods
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"}, // Allowed headers
 		AllowCredentials: true,                                                // Allow cookies if needed
-	}))	
+	}))
 	/// Get all coursecodes
-	r.GET("/getAllMods", func(c *gin.Context) { modules.GetAllModules(c)})
+	r.GET("/getAllMods", func(c *gin.Context) { modules.GetAllModules(c) })
 	venueData := make(map[string][]float64)
 
 	/// Post course data and free days
-	r.POST("/getFreeSlots", func (c *gin.Context) {
+	r.POST("/getFreeSlots", func(c *gin.Context) {
 		json.Unmarshal(venuesJson, &venueData)
 		modules.Submit(c, venueData)
 	})

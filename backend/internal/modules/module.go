@@ -93,3 +93,36 @@ func Submit(c *gin.Context, venueData map[string]any) {
 	}
 
 }
+
+func cleanData(rawDataList []any, semester int, venueData map[string][]float64, maxDistance float64) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
+	// var filtered []models.LessonSlot
+	// filtering
+	const timeLayout = "1504"
+	var lessonToSlotListMap = make(map[models.Lesson][]models.Slot)
+	var lessonList []models.Lesson
+	slotCount := 0 // tracking foer performance
+	for _, eachModRawData := range rawDataList {
+		modDataMap, ok := eachModRawData.(map[string]any)
+		if !ok {
+			fmt.Println("eachModRawData is not a map[string]any")
+			continue
+		}
+		// semesterData:= semesterData.([]map[string]any)
+		semesterData, ok := modDataMap["semesterData"].([]any)
+		// semesterData, ok := modDataMap["semesterData"].([]map[string]any) // the actual type
+		// fmt.Println(semester, semesterData)
+		if !ok {
+			return nil, nil, fmt.Errorf("cannot access semesterData")
+		}
+		var eachModSemData map[string]any
+		for _, data := range semesterData {
+			assertedData := data.(map[string]any)
+			if sem, ok := assertedData["semester"]; ok && int(sem.(float64)) == semester {
+				// note down the indices to be removed
+				eachModSemData = data.(map[string]any)
+				break
+			}
+		}
+	}
+
+}
