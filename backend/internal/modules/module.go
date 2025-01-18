@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/thejus03/hacknroll/backend/internal/graph"
 	"github.com/thejus03/hacknroll/backend/internal/models"
 )
 
@@ -41,7 +42,7 @@ func GetAllModules(c *gin.Context) {
 
 }
 
-func Submit(c *gin.Context, venueData map[string]any) {
+func Submit(c *gin.Context, venueData map[string][]float64) {
 	jsonData, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		fmt.Println("error reading json")
