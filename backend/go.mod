@@ -5,6 +5,7 @@ go 1.23.4
 require (
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-gonic/gin v1.10.0
+	github.com/umahmood/haversine v0.0.0-20151105152445-808ab04add26
 )
 
 require (
