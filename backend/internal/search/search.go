@@ -54,13 +54,21 @@ func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson
 			}
 		}
 		if possible {
+			// Create a copy of chosen_lessonslots
+			newChosenLessonslots := append([]models.LessonSlot{}, chosen_lessonslots...)
+		
+			// Append all slots in the current class to the new copy
 			for _, slot := range class {
 				lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
-				chosen_lessonslots = append(chosen_lessonslots, lessonslot)
+				newChosenLessonslots = append(newChosenLessonslots, lessonslot)
 			}
-			Backtrack(idx+1, lessons, lessonToSlots, chosen_lessonslots, timetables, graph, freeDays)
-			chosen_lessonslots = chosen_lessonslots[:len(chosen_lessonslots)-len(class)]
+		
+			// Recursively call Backtrack with the new copy
+			Backtrack(idx+1, lessons, lessonToSlots, newChosenLessonslots, timetables, graph, freeDays)
+		
+			// No need to manually remove slots as modifications are isolated to the copy
 		}
+		
 	}
 }
 
@@ -79,6 +87,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 	// Call Backtracking function to find all possilbe timetables
 	Backtrack(0, lessons, lessonToSlots, []models.LessonSlot{}, &timetables, graph, freeDays)
 
+	fmt.Println("Number of Timetables:", len(timetables))
 	// Get the number of workers to use
 	numWorkers := runtime.NumCPU()
 	// Create channels for communication
@@ -93,6 +102,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 		go func() {
 			defer wg.Done()
 			for tt := range workChan {
+				// fmt.Println("Scoring Timetable", tt)
 				sorted_timetable := SortByDays(tt)
 				score := ScoreTimetable(sorted_timetable, cutoff_timings, freeDays)
 				resultsChan <- Tuple{score, tt}
@@ -131,6 +141,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 	}
 
 	return res
+	
 
 }
 
