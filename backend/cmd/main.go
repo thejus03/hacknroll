@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-contrib/cors"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/thejus03/hacknroll/backend/modules"
@@ -67,4 +68,27 @@ func mergeLocation() {
 	} else {
 		fmt.Printf("Results written to %s\n", outputFile)
 	}
+}
+
+func extractBuildingName(key string) string {
+	if len(key) > 4 {
+		return key[:4] // Get the first 4 characters
+	}
+	return key // Return the entire key if shorter than 4 characters
+}
+
+func writeToJSONFile(filename string, data any) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+
+	jsonData, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(jsonData)
+	defer file.Close()
+	return err
 }
