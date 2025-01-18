@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/thejus03/hacknroll/backend/internal/models"
@@ -50,6 +51,23 @@ func Submit(c *gin.Context, venueData map[string]any) {
 		fmt.Println("Error unmarshalling JSON:", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON format"})
 		return
+	}
+	var rawDataList []any
+	for _, modCode := range userInput.ChosenLessons {
+		url := fmt.Sprintf("https://api.nusmods.com/v2/2024-2025/modules/%s.json", strings.ToUpper(modCode))
+		fmt.Println("url:", url)
+		resp, err := http.Get(url)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			fmt.Println("something wrong with fetching module info using codes")
+		}
+		var data map[string]any
+		json.Unmarshal(body, &data)
+		rawDataList = append(rawDataList, data)
+		defer resp.Body.Close()
 	}
 
 }
