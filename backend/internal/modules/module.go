@@ -112,6 +112,8 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 	// fmt.Println("map:", lessonToClassNoToSlotListMap)
 	graph := graph.CreateGraph(lessonSlotList)
 	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToClassNoToSlotListMap, cutoff_timings, freeDays, graph)
+	// make the link
+	makeLink(res)
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": res})
 
 }
@@ -235,7 +237,6 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			for key, classNoMap := range lessonToClassNoToSlotListMap {
 				// if same Lesson Type,
 				if key == lessonInstance {
-					fmt.Println("key exists for lesson:", key)
 					mapKeyExists = true
 					// check if the day, time and same x,y coordinate are the same, if so , dont add
 					// append to the list
@@ -244,7 +245,6 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 					for classNoKey, slotArr := range classNoMap {
 						if classNoKey == classNo {
 							classNoSame = true
-							fmt.Println("classNo exists for lesson:", lessonInstance)
 							slotArr = append(slotArr, slotInstance)
 						}
 					}
@@ -254,7 +254,6 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 				}
 			}
 			if !mapKeyExists {
-				fmt.Println("key does not exist for lesson:", lessonInstance)
 				// initialise the key/value pair
 				lessonToClassNoToSlotListMap[lessonInstance] = map[string][]models.Slot{classNo: []models.Slot{slotInstance}}
 				lessonList = append(lessonList, lessonInstance)
@@ -262,10 +261,11 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 		}
 
 	}
-	fmt.Println("slots created:", slotCount)
-	for lesson, classNoMap := range lessonToClassNoToSlotListMap {
-		fmt.Println(lesson, ":", len(classNoMap))
+	var counter uint64 = 1
+	for _, classNoMap := range lessonToClassNoToSlotListMap {
+		counter *= uint64(len(classNoMap))
 	}
+	fmt.Println("multiplied slots:", counter)
 	return lessonToClassNoToSlotListMap, lessonList, nil
 
 }
@@ -273,4 +273,42 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 func extractBuildingName(key string) string {
 	parts := strings.SplitN(key, "-", 2)
 	return parts[0] // Return the part before '-' or the whole key if '-' is absent
+}
+
+func makeLink(lessonSlotList [][]models.LessonSlot) {
+	modTypeNoMapList := []map[string]map[string]string{}
+	for _, eachTimetable := range lessonSlotList {
+		modTypeNoMap := make(map[string]map[string]string)
+		for _, lessonSlotVar := range eachTimetable {
+			// check if they moduleCode exists, if no, make one, else append
+			if _, exists := modTypeNoMap[lessonSlotVar.Lesson.ModuleCode]; !exists {
+				modTypeNoMap[lessonSlotVar.Lesson.ModuleCode] = map[string]string{}
+			}
+			var lessonType string
+			switch lessonType {
+			case "Lecture":
+				lessonType = "LEC"
+			case "Tutorial":
+				lessonType = "TUT"
+			case "Workshop":
+				lessonType = "WS"
+			case "Laboratory":
+				lessonType = "LAB"
+			case "Recital":
+				lessonType = "REC"
+			}
+			modTypeNoMap[lessonSlotVar.Lesson.ModuleCode][lessonType] = lessonSlotVar.Slot.ClassNo
+		}
+		modTypeNoMapList = append(modTypeNoMapList, modTypeNoMap)
+	}
+	fiveLinks := []string{}
+	for _, timetable := range modTypeNoMapList {
+		url := "https://nusmods.com/timetable/sem-2/share?"
+		for modCode, moduleMap := range timetable {
+			url += modCode + "="
+			for classType
+		}
+	}
+
+	fmt.Println(modTypeNoMapList)
 }
