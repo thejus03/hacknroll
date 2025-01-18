@@ -2,10 +2,10 @@ import { useState } from "react";
 
 interface Timetable {
   rank: number;
-  activities?: string[];
-  location?: string;
+  mods?: string[];
   freeDays?: string[];
-  unfavorableTimings?: string;
+  earliestTime?: string;
+  latestTime?: string;
 }
 
 interface TimetableDisplayProps {
@@ -26,6 +26,7 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
       </div>
     );
   }
+
   // Display timetables
   return (
     <div className="w-full md:w-2/3 bg-mainbg p-6 rounded-lg shadow-lg relative">
@@ -44,18 +45,17 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
               Rank #{timetable.rank}
             </h3>
             <p className="text-gray-300 mt-2">
-              Activities: {Array.isArray(timetable.activities) && timetable.activities.length > 0
-                ? timetable.activities.join(", ")
-                : "No activities specified"}
+              Modules: {Array.isArray(timetable.mods) && timetable.mods.length > 0
+                ? timetable.mods.join(", ")
+                : "No modules specified"}
             </p>
-            <p className="text-gray-300">Location: {timetable.location || "Not specified"}</p>
             <p className="text-gray-300">
-              Days Off: {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
+              Days: {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
                 ? timetable.freeDays.join(", ")
                 : "None"}
             </p>
             <p className="text-gray-300">
-              Unfavorable Timings: {timetable.unfavorableTimings || "None"}
+              Time: {timetable.earliestTime || "N/A"} to {timetable.latestTime || "N/A"}
             </p>
 
             {/* Hover Preview */}
@@ -65,20 +65,19 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
                   Timetable Preview
                 </h3>
                 <p className="text-gray-300 whitespace-pre-line">
-                  <strong>Activities:</strong> {Array.isArray(timetable.activities) && timetable.activities.length > 0
-                    ? timetable.activities.join(", ")
-                    : "No activities specified"}
+                  <strong>Modules:</strong>{" "}
+                  {Array.isArray(timetable.mods) && timetable.mods.length > 0
+                    ? timetable.mods.join(", ")
+                    : "No modules specified"}
                 </p>
                 <p className="text-gray-300 mt-2">
-                  <strong>Location:</strong> {timetable.location || "Not specified"}
-                </p>
-                <p className="text-gray-300 mt-2">
-                  <strong>Days Off:</strong> {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
+                  <strong>Days:</strong>{" "}
+                  {Array.isArray(timetable.freeDays) && timetable.freeDays.length > 0
                     ? timetable.freeDays.join(", ")
                     : "None"}
                 </p>
                 <p className="text-gray-300 mt-2">
-                  <strong>Unfavorable Timings:</strong> {timetable.unfavorableTimings || "None"}
+                  <strong>Time:</strong> {timetable.earliestTime || "N/A"} to {timetable.latestTime || "N/A"}
                 </p>
               </div>
             )}
