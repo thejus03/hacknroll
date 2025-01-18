@@ -27,6 +27,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [currentEndTime, setCurrentEndTime] = useState<string>("0800");
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [mods, setMods] = useState<string[]>([]);
+  const [mandatoryDays, setMandatoryDays] = useState<string[][]>([]);
 
   const daysOfWeek: string[] = [
     "Monday",
@@ -83,7 +84,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
       // Extract payload
       const { payload } = data;
-
+      setMandatoryDays(payload);
       console.log("Payload:", payload);
     } catch (error) {
       console.error("Error submitting options:", error);
@@ -117,13 +118,28 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     });
   }, []);
 
-  const toggleFreeDay = useCallback((day: string): void => {
-    setFreeDays((prevDays) => {
-      return prevDays.includes(day)
-        ? prevDays.filter((d) => d !== day)
-        : [...prevDays, day];
-    });
-  }, []);
+  const toggleFreeDay = (day: string): void => {
+    console.log("Toggling free day:", day);
+  
+    // Create a copy of freeDays including the new day
+    const updatedFreeDays = freeDays.includes(day)
+      ? freeDays.filter((d) => d !== day) // Remove the day if it's already selected
+      : [...freeDays, day]; // Add the day if it's not already selected
+  
+    // Check for conflicts with mandatoryDays
+    for (const subArray of mandatoryDays) {
+      if (subArray.every((mandatoryDay) => updatedFreeDays.includes(mandatoryDay))) {
+        alert(`You cannot make ${day} free due to mandatory schedule constraints.`);
+        console.log(`Conflict detected: Cannot make ${day} free.`);
+        return; // Exit the function without updating freeDays
+      }
+    }
+  
+    // Update freeDays if there's no conflict
+    setFreeDays(updatedFreeDays);
+    console.log("Updated freeDays:", updatedFreeDays);
+  };
+  
 
   const validateTimings = (): boolean => {
     return currentStartTime < currentEndTime;
