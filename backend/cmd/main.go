@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/thejus03/hacknroll/backend/modules"
+	"github.com/thejus03/hacknroll/backend/internal/modules"
 )
 
 type Room struct {
