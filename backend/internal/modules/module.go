@@ -93,3 +93,13 @@ func Submit(c *gin.Context, venueData map[string]any) {
 	}
 
 }
+
+func cleanData(rawDataList []any, semester int, venueData map[string][]float64, maxDistance float64) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
+	// var filtered []models.LessonSlot
+	// filtering
+	const timeLayout = "1504"
+	var lessonToSlotListMap = make(map[models.Lesson][]models.Slot)
+	var lessonList []models.Lesson
+	slotCount := 0
+
+}
