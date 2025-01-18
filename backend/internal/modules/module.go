@@ -100,5 +100,21 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 	const timeLayout = "1504"
 	var lessonToSlotListMap = make(map[models.Lesson][]models.Slot)
 	var lessonList []models.Lesson
-	slotCount := 0
+	slotCount := 0 // tracking foer performance
+	for _, eachModRawData := range rawDataList {
+		modDataMap, ok := eachModRawData.(map[string]any)
+		if !ok {
+			fmt.Println("eachModRawData is not a map[string]any")
+			continue
+		}
+		// semesterData:= semesterData.([]map[string]any)
+		semesterData, ok := modDataMap["semesterData"].([]any)
+		// semesterData, ok := modDataMap["semesterData"].([]map[string]any) // the actual type
+		// fmt.Println(semester, semesterData)
+		if !ok {
+			return nil, nil, fmt.Errorf("cannot access semesterData")
+		}
+		var eachModSemData map[string]any
+	}
+
 }
