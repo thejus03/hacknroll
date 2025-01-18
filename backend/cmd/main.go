@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/gin-contrib/cors"
 
@@ -17,7 +16,7 @@ type Room struct {
 	Location map[string]float64 `json:"location"`
 }
 
-//go:embed venues.json
+//go:embed venuesMerged.json
 var venuesJson []byte
 
 func main() {
@@ -34,7 +33,8 @@ func main() {
 	venueData := make(map[string][]float64)
 
 	/// Post course data and free days
-	r.POST("/getFreeSlots", func(c *gin.Context) {
+	r.POST("/getSlots", func(c *gin.Context) {
+
 		json.Unmarshal(venuesJson, &venueData)
 		modules.Submit(c, venueData)
 	})
@@ -43,54 +43,52 @@ func main() {
 	r.Run(":8080")
 }
 
-func mergeLocation() {
-	venueData := make(map[string]Room)
-	json.Unmarshal(venuesJson, &venueData)
+// func mergeLocation() map[string][2]float64 {
+// 	venueData := make(map[string]Room)
+// 	json.Unmarshal(venuesJson, &venueData)
 
-	groups := make(map[string][]Room)
-	for key, room := range venueData {
-		building := extractBuildingName(key) // group according to first 4 characters of location
-		groups[building] = append(groups[building], room)
-	}
-	centers := make(map[string][2]float64)
-	for building, rooms := range groups {
-		var totalX, totalY float64
-		for _, room := range rooms {
-			totalX += room.Location["x"]
-			totalY += room.Location["y"]
-		}
-		count := float64(len(rooms))
-		centers[building] = [2]float64{totalX / count, totalY / count}
-	}
+// 	groups := make(map[string][]Room)
+// 	for key, room := range venueData {
+// 		building := extractBuildingName(key) // group according to first 4 characters of location
+// 		groups[building] = append(groups[building], room)
+// 	}
+// 	centers := make(map[string][2]float64)
+// 	for building, rooms := range groups {
+// 		var totalX, totalY float64
+// 		for _, room := range rooms {
+// 			totalX += room.Location["x"]
+// 			totalY += room.Location["y"]
+// 		}
+// 		count := float64(len(rooms))
+// 		centers[building] = [2]float64{totalX / count, totalY / count}
+// 	}
+// 	return centers
+// 	// Write results to JSON file
+// 	// outputFile := "venuesMerged.json"
+// 	// if err := writeToJSONFile(outputFile, centers); err != nil {
+// 	// 	fmt.Printf("Error writing to file: %v\n", err)
+// 	// } else {
+// 	// 	fmt.Printf("Results written to %s\n", outputFile)
+// 	// }
+// }
 
-	// Write results to JSON file
-	outputFile := "venuesMerged.json"
-	if err := writeToJSONFile(outputFile, centers); err != nil {
-		fmt.Printf("Error writing to file: %v\n", err)
-	} else {
-		fmt.Printf("Results written to %s\n", outputFile)
-	}
-}
+// func extractBuildingName(key string) string {
+// 	parts := strings.SplitN(key, "-", 2)
+// 	return parts[0] // Return the part before '-' or the whole key if '-' is absent
+// }
 
-func extractBuildingName(key string) string {
-	if len(key) > 4 {
-		return key[:4] // Get the first 4 characters
-	}
-	return key // Return the entire key if shorter than 4 characters
-}
+// func writeToJSONFile(filename string, data any) error {
+// 	file, err := os.Create(filename)
+// 	if err != nil {
+// 		return err
+// 	}
 
-func writeToJSONFile(filename string, data any) error {
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
+// 	jsonData, err := json.MarshalIndent(data, "", "  ")
+// 	if err != nil {
+// 		return err
+// 	}
 
-	jsonData, err := json.MarshalIndent(data, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	_, err = file.Write(jsonData)
-	defer file.Close()
-	return err
-}
+// 	_, err = file.Write(jsonData)
+// 	defer file.Close()
+// 	return err
+// }

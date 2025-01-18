@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/thejus03/hacknroll/backend/internal/graph"
 	"github.com/thejus03/hacknroll/backend/internal/models"
+	"github.com/thejus03/hacknroll/backend/internal/search"
 )
 
 func GetAllModules(c *gin.Context) {
@@ -92,7 +94,12 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 		return
 	}
 	cutoff_timings := map[string]time.Time{"earliest": earliestTime, "latest": latestTime}
-	lessonToSlotListMap, lessons, nil := cleanData(rawDataList, semester, venueData, 0.300)
+	lessonToSlotListMap, lessons, err := cleanData(rawDataList, semester, venueData)
+	if err != nil {
+		fmt.Println("Error cleaning data:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error cleaning data"})
+		return
+	}
 	// use cleaned data to make a list to make a graph
 	var lessonSlotList []models.LessonSlot
 	for lesson, slotList := range lessonToSlotListMap {
@@ -102,9 +109,10 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 	}
 	graph := graph.CreateGraph(lessonSlotList)
 	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToSlotListMap, cutoff_timings, freeDays, graph)
+	fmt.Println("res:", res)
 }
 
-func cleanData(rawDataList []any, semester int, venueData map[string][]float64, maxDistance float64) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
+func cleanData(rawDataList []any, semester int, venueData map[string][]float64) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
 	// var filtered []models.LessonSlot
 	// filtering
 	const timeLayout = "1504"
@@ -171,13 +179,13 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			if !ok {
 				return nil, nil, fmt.Errorf("venue is not a string")
 			}
+			venue = extractBuildingName(venue)
 			lessonInstance := models.Lesson{ModuleCode: modDataMap["moduleCode"].(string), LessonType: lessonType}
 			// Check the JSON for location coordinates
 			var locationInstance models.Location
 			var slotInstance models.Slot
 			for key, locationValue := range venueData {
-				// if key == venue {
-				if strings.Contains(venue, key) {
+				if key == venue {
 					fmt.Println("venue:", venue, "key:", key)
 					// validLocation = true
 					if !ok {
@@ -201,39 +209,36 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 				}
 			}
 
-		}
-		if len(locationInstance.Name) == 0 {
-			// fmt.Println(lessonInstance.ModuleCode, " has no location:")
-			continue
-		}
-		if lessonType == "Recitation" {
-			fmt.Println("RECITATION:", lessonInstance, "mod: ", lessonInstance.ModuleCode, "location:", venue)
-		}
-		slotCount++ // slot count is lesser  than previous commit
-		slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
+			if len(locationInstance.Name) == 0 {
+				// fmt.Println(lessonInstance.ModuleCode, " has no location:")
+				continue
+			}
+			slotCount++ // slot count is lesser  than previous commit
+			slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
 
-		mapKeyExists := false
-		for key, value := range lessonToSlotListMap {
-			if key == lessonInstance {
-				mapKeyExists = true
-				// check if the day, time and same x,y coordinate are the same, if so , dont add
-				// append to the list
-				slotExists := false
-				for _, slot := range value {
-					if slot.IsEqual(slotInstance) {
-						slotExists = true
-						break
+			mapKeyExists := false
+			for key, value := range lessonToSlotListMap {
+				if key == lessonInstance {
+					mapKeyExists = true
+					// check if the day, time and same x,y coordinate are the same, if so , dont add
+					// append to the list
+					slotExists := false
+					for _, slot := range value {
+						if slot.IsEqual(slotInstance) {
+							slotExists = true
+							break
+						}
+					}
+					if !slotExists {
+						// fmt.Println("appnding to the list")
+						lessonToSlotListMap[key] = append(lessonToSlotListMap[key], slotInstance)
 					}
 				}
-				if !slotExists {
-					// fmt.Println("appnding to the list")
-					lessonToSlotListMap[key] = append(lessonToSlotListMap[key], slotInstance)
-				}
 			}
-		}
-		if !mapKeyExists {
-			lessonToSlotListMap[lessonInstance] = []models.Slot{slotInstance}
-			lessonList = append(lessonList, lessonInstance)
+			if !mapKeyExists {
+				lessonToSlotListMap[lessonInstance] = []models.Slot{slotInstance}
+				lessonList = append(lessonList, lessonInstance)
+			}
 		}
 
 	}
@@ -243,4 +248,9 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 	}
 	return lessonToSlotListMap, lessonList, nil
 
+}
+
+func extractBuildingName(key string) string {
+	parts := strings.SplitN(key, "-", 2)
+	return parts[0] // Return the part before '-' or the whole key if '-' is absent
 }
