@@ -148,7 +148,7 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			if !ok {
 				return nil, nil, fmt.Errorf("endTime is not a string")
 			}
-			
+
 			endTime, err := time.Parse(timeLayout, endTimeStr)
 			if err != nil {
 				return nil, nil, err
@@ -162,7 +162,6 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 				return nil, nil, fmt.Errorf("venue is not a string")
 			}
 			lessonInstance := models.Lesson{ModuleCode: modDataMap["moduleCode"].(string), LessonType: lessonType}
-			closeEnough := false
 			// Check the JSON for location coordinates
 			var locationInstance models.Location
 			var slotInstance models.Slot
@@ -192,6 +191,46 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 				}
 			}
 
-			
 		}
+		if len(locationInstance.Name) == 0 {
+			// fmt.Println(lessonInstance.ModuleCode, " has no location:")
+			continue
+		}
+		if lessonType == "Recitation" {
+			fmt.Println("RECITATION:", lessonInstance, "mod: ", lessonInstance.ModuleCode, "location:", venue)
+		}
+		slotCount++ // slot count is lesser  than previous commit
+		slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
+
+		mapKeyExists := false
+		for key, value := range lessonToSlotListMap {
+			if key == lessonInstance {
+				mapKeyExists = true
+				// check if the day, time and same x,y coordinate are the same, if so , dont add
+				// append to the list
+				slotExists := false
+				for _, slot := range value {
+					if slot.IsEqual(slotInstance) {
+						slotExists = true
+						break
+					}
+				}
+				if !slotExists {
+					// fmt.Println("appnding to the list")
+					lessonToSlotListMap[key] = append(lessonToSlotListMap[key], slotInstance)
+				}
+			}
+		}
+		if !mapKeyExists {
+			lessonToSlotListMap[lessonInstance] = []models.Slot{slotInstance}
+			lessonList = append(lessonList, lessonInstance)
+		}
+
 	}
+	fmt.Println("slots created:", slotCount)
+	for lesson, slotList := range lessonToSlotListMap {
+		fmt.Println(lesson, ":", len(slotList))
+	}
+	return lessonToSlotListMap, lessonList, nil
+
+}
