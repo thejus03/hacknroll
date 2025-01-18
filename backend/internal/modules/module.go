@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/thejus03/hacknroll/backend/internal/models"
@@ -73,6 +74,22 @@ func Submit(c *gin.Context, venueData map[string]any) {
 	freeDays := make(map[string]bool)
 	for _, day := range userInput.FreeDays {
 		freeDays[day] = true
+	}
+
+	// get earliest and latest time
+	const timeLayout = "1504"
+	earliestTime, err := time.Parse(timeLayout, userInput.EarliestTime)
+	semester := userInput.Semester
+	if err != nil {
+		fmt.Println("Error parsing earliest time:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid earliest time format"})
+		return
+	}
+	latestTime, err := time.Parse(timeLayout, userInput.LatestTime)
+	if err != nil {
+		fmt.Println("Error parsing latest time:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid latest time format"})
+		return
 	}
 
 }
