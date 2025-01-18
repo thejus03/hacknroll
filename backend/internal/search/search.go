@@ -37,7 +37,11 @@ func PossibleTimetables(lessons []models.Lessons, lessonToSlots map[models.Lesso
 		return len(lessonToSlots[lessons[i]]) < len(lessonToSlots[lessons[j]])
 	})
 	fmt.Println("Lessons:", lessons)
-	
+
+	var timetables [][]models.LessonSlot
+
+	// Call Backtracking function to find all possilbe timetables
+
 
 
 }
