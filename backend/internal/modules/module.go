@@ -37,3 +37,12 @@ func GetAllModules(c *gin.Context) {
 	})
 
 }
+
+func Submit(c *gin.Context, venueData map[string]any) {
+	jsonData, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		fmt.Println("error reading json")
+		return
+	}
+
+}
