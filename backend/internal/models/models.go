@@ -37,3 +37,14 @@ func (s1 Slot) IsEqual(s2 Slot) bool {
 	}
 	return true
 }
+
+type Location struct {
+	Name string  `json:"name"`
+	X    float64 `json:"x"`
+	Y    float64 `json:"y"`
+}
+
+type LessonSlot struct {
+	Lesson Lesson `json:"lesson"`
+	Slot   Slot   `json:"slot"`
+}
