@@ -36,7 +36,7 @@ func (t *TupleHeap) Pop() interface{} {
 	return x
 }
 
-func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson][]models.Slot, chosen_lessonslots []models.LessonSlot, timetables *[][]models.LessonSlot, graph graph.Graph, freeDays map[string]bool) {
+func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson]map[string][]models.Slot, chosen_lessonslots []models.LessonSlot, timetables *[][]models.LessonSlot, graph graph.Graph, freeDays map[string]bool) {
 	// Keep track of which lesson we are at. Then for loop to check if not adjacent then add and recursively track until you reach the end of lesson
 	if idx == len(lessons) {
 		*timetables = append(*timetables, chosen_lessonslots)
@@ -44,17 +44,27 @@ func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson
 	}
 
 	lesson := lessons[idx]
-	for _, slot := range lessonToSlots[lesson] {
-		lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
-		if !graph.IsAdjacent(lessonslot, chosen_lessonslots) {
-			chosen_lessonslots = append(chosen_lessonslots, lessonslot)
+	for _, class := range lessonToSlots[lesson] {
+		possible := true
+		for _, slot := range class {
+			lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
+			if graph.IsAdjacent(lessonslot, chosen_lessonslots) {
+				possible = false
+				break
+			}
+		}
+		if possible {
+			for _, slot := range class {
+				lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
+				chosen_lessonslots = append(chosen_lessonslots, lessonslot)
+			}
 			Backtrack(idx+1, lessons, lessonToSlots, chosen_lessonslots, timetables, graph, freeDays)
-			chosen_lessonslots = chosen_lessonslots[:len(chosen_lessonslots)-1]
+			chosen_lessonslots = chosen_lessonslots[:len(chosen_lessonslots)-len(class)]
 		}
 	}
 }
 
-func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson][]models.Slot, cutoff_timings map[string]time.Time, freeDays map[string]bool, graph graph.Graph) [][]models.LessonSlot {
+func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson]map[string][]models.Slot, cutoff_timings map[string]time.Time, freeDays map[string]bool, graph graph.Graph) [][]models.LessonSlot {
 
 	// Sort the lessons in ascending order of number of slots
 	sort.Slice(lessons, func(i, j int) bool {
