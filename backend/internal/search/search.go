@@ -174,23 +174,6 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 		for _, lessonslot := range timings {
 			// var location string = lessonslot.Slot.Location
 			start_time := lessonslot.Slot.StartTime
-			var lessontype string = lessonslot.Lesson.LessonType
-
-			if lessontype == "Lecture" {
-				if _, exists := freeDays[day]; exists {
-					score += 30
-				} else {
-					// its not the worst to have lectures on non-free days
-					score -= 15
-				}
-			} else {
-				// fmt.Println("LessonType:", lessontype)
-				if _, exists := freeDays[day]; exists {
-					score -= 20
-				} else {
-					score += 30
-				}
-			}
 
 			// Award for lectures on free days
 			end_time := lessonslot.Slot.EndTime
