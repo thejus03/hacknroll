@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { FaSearch } from "react-icons/fa";
 
 // Helper function to check if two time ranges overlap
@@ -27,6 +27,8 @@ export default function TimetableForm({ onGenerate }: { onGenerate: Function }) 
   const [isFocused, setIsFocused] = useState(false);
   const [options, setOptions] = useState<any[]>([]); // Store options fetched from the server
 
+  
+
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
   // Fetch options from server (mock or API endpoint)
@@ -44,6 +46,7 @@ export default function TimetableForm({ onGenerate }: { onGenerate: Function }) 
       });
       const data = await response.json();
       setOptions(data.payload);
+      
     } catch (error) {
       console.error("Error fetching modules:", error);
     }
@@ -91,26 +94,9 @@ export default function TimetableForm({ onGenerate }: { onGenerate: Function }) 
     }
   };
 
-  const addExcludedTiming = () => {
+  const addExcludedTiming = (): void => {
     const newTiming = `${currentStartTime} - ${currentEndTime}`;
-
-    const conflicts = selectedActivities.some((activity) =>
-      timeRangesOverlap(newTiming, activity.timing)
-    );
-
-    if (conflicts) {
-      const conflictingActivities = selectedActivities.filter((activity) =>
-        timeRangesOverlap(newTiming, activity.timing)
-      );
-      setPopupMessage(
-        `The timing "${newTiming}" conflicts with: ${conflictingActivities
-          .map((a) => a.activity)
-          .join(", ")}.`
-      );
-      setTimeout(() => setPopupMessage(""), 3000); // Remove popup after 3 seconds
-    } else {
-      setExcludedTimings([...excludedTimings, newTiming]);
-    }
+    setExcludedTimings([...excludedTimings, newTiming]);
   };
 
   const handleRemoveTiming = (index: number) => {
@@ -119,8 +105,8 @@ export default function TimetableForm({ onGenerate }: { onGenerate: Function }) 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedActivities.length === 0) {
-      alert("Please add at least one activity!");
+    if (selectedOptions.length === 0) {
+      alert("Please add at least one option!");
       return;
     }
     onGenerate({ activities: selectedActivities, location, excludeDays, excludedTimings });
@@ -157,7 +143,7 @@ export default function TimetableForm({ onGenerate }: { onGenerate: Function }) 
               {filteredOptions.map((option: any, index: number) => (
                 <li
                   key={index}
-                  onClick={() => handleAddActivity(option)}
+                  onClick={() => handleAddOption(option)}
                   className="px-4 py-2 cursor-pointer text-gray-300 hover:bg-orange hover:text-white transition-all duration-200"
                 >
                   {option.moduleCode}: {option.title}

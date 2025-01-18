@@ -1,4 +1,5 @@
 "use client";
+<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import html2canvas from "html2canvas";
 
@@ -51,13 +52,36 @@ export default function PreviewPage() {
     setScreenshot(""); // Clear previous screenshot
 
     await fetchHtmlContent(fullUrl);
+=======
+import { useState } from "react";
+
+export default function PreviewPage() {
+  const [fullUrl, setFullUrl] = useState<string>(""); // State for the full URL input
+  const [iframeUrl, setIframeUrl] = useState<string>(""); // URL to be used in the iframe
+  const [error, setError] = useState<string>(""); // State for error messages
+
+  const handlePreview = () => {
+    // Validate the full URL
+    if (!fullUrl.startsWith("https://nusmods.com/timetable/")) {
+      setError("Please enter a valid NUSMods timetable URL.");
+      setIframeUrl(""); // Clear the iframe
+      return;
+    }
+
+    setError(""); // Clear previous errors
+    setIframeUrl(fullUrl); // Set the URL for the iframe
+>>>>>>> dev
   };
 
   return (
     <div className="min-h-screen bg-mainbg text-white flex flex-col items-center py-10">
       {/* Header */}
       <h1 className="text-3xl font-bold text-orange mb-8">
+<<<<<<< HEAD
         Page Screenshot Preview
+=======
+        NUSMods Timetable Preview
+>>>>>>> dev
       </h1>
 
       {/* Input Section */}
@@ -66,7 +90,11 @@ export default function PreviewPage() {
           {/* Input Field */}
           <input
             type="text"
+<<<<<<< HEAD
             placeholder="Enter the full URL"
+=======
+            placeholder="Enter full NUSMods timetable URL"
+>>>>>>> dev
             value={fullUrl}
             onChange={(e) => setFullUrl(e.target.value)}
             className="w-full bg-mainbg border border-gray-600 text-gray-300 px-4 py-2 rounded-md focus:ring-2 focus:ring-orange focus:outline-none"
@@ -85,6 +113,7 @@ export default function PreviewPage() {
         {error && <p className="text-red-500 text-sm">{error}</p>}
       </div>
 
+<<<<<<< HEAD
       {/* HTML Content Rendering Section */}
       {htmlContent && (
         <div className="mt-8 w-full max-w-4xl">
@@ -112,6 +141,17 @@ export default function PreviewPage() {
             src={screenshot}
             alt="Screenshot"
             className="border border-gray-600 rounded-md shadow-lg"
+=======
+      {/* Timetable Preview Section */}
+      {iframeUrl && (
+        <div className="mt-8 w-full flex justify-center">
+          <iframe
+            src={iframeUrl}
+            width="90%"
+            height="600"
+            className="border border-gray-600 rounded-md shadow-lg"
+            title="NUSMods Timetable"
+>>>>>>> dev
           />
         </div>
       )}
