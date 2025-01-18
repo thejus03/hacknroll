@@ -91,8 +91,7 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 	graph := graph.CreateGraph(lessonSlotList)
 	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToClassNoToSlotListMap, cutoff_timings, freeDays, graph)
 	// make the link
-	makeLink(res)
-	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": res})
+	makeLink(c, res)
 
 }
 
@@ -174,8 +173,8 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			var locationInstance models.Location
 			var slotInstance models.Slot
 
-			x:=venueData[venue][0]
-			y:=venueData[venue][1]
+			x := venueData[venue][0]
+			y := venueData[venue][1]
 
 			locationInstance = models.Location{
 				Name: venue,
@@ -184,14 +183,14 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			}
 
 			avoid := false
-			// Check if this slot can be merged 	
+			// Check if this slot can be merged
 			if SlotList, exists := lessonToClassNoToSlotListMap[lessonInstance]; exists {
 				for _, slots := range SlotList {
 					for _, slot := range slots {
 						if slot.StartTime.Equal(startTime) && slot.EndTime.Equal(endTime) && slot.Day == day {
 							slotvenue := extractBuildingName(slot.LocationObject.Name)
 							if slotvenue == venue {
-								avoid = true	
+								avoid = true
 								break
 							}
 						}
@@ -202,10 +201,9 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			if avoid {
 				continue
 			}
-			
+
 			slotCount++ // slot count is lesser  than previous commit
 			slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
-
 
 			// If class no is the same then we are creating array of slots w same class no
 			mapKeyExists := false
@@ -250,7 +248,7 @@ func extractBuildingName(key string) string {
 	return parts[0] // Return the part before '-' or the whole key if '-' is absent
 }
 
-func makeLink(lessonSlotList [][]models.LessonSlot) {
+func makeLink(c *gin.Context, lessonSlotList [][]models.LessonSlot) {
 	modTypeNoMapList := []map[string]map[string]string{}
 	for _, eachTimetable := range lessonSlotList {
 		modTypeNoMap := make(map[string]map[string]string)
@@ -291,7 +289,7 @@ func makeLink(lessonSlotList [][]models.LessonSlot) {
 		}
 		fiveLinks = append(fiveLinks, url[:len(url)-1])
 	}
-
+	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": fiveLinks})
 	fmt.Println(fiveLinks)
 }
 
