@@ -205,8 +205,8 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 			// Score based on location
 			if prev_location.Name != "" {
 				if lessonslot.Slot.LocationObject.X != 0 || lessonslot.Slot.LocationObject.Y != 0 {
-					prev := haversine.Coord{Lat: prev_location.X, Lon: prev_location.Y}
-					curr := haversine.Coord{Lat: lessonslot.Slot.LocationObject.X, Lon: lessonslot.Slot.LocationObject.Y}
+					prev := haversine.Coord{Lat: prev_location.Y, Lon: prev_location.X}
+					curr := haversine.Coord{Lat: lessonslot.Slot.LocationObject.Y, Lon: lessonslot.Slot.LocationObject.X}
 					_, km := haversine.Distance(prev, curr)
 	
 					// Penalise based locations between lessons
