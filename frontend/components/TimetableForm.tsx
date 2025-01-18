@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useCallback, FormEvent } from "react";
 import { FaSearch } from "react-icons/fa";
 
 interface TimetableFormProps {
@@ -7,24 +7,21 @@ interface TimetableFormProps {
     mods: string[];
     semester: number;
     freeDays: string[];
-    currentStartTime: string,
-    currentEndTime: string,
-    // favourableTimings: string[];
+    currentStartTime: string;
+    currentEndTime: string;
   }) => void;
 }
 
 export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [query, setQuery] = useState<string>("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [semester, setSemester] = useState(1);
-  const [freeDays, setExcludeDays] = useState<string[]>([]);
-  const [popupMessage] = useState<string>("");
+  const [semester, setSemester] = useState<number>(1);
+  const [freeDays, setFreeDays] = useState<string[]>([]);
   const [currentStartTime, setCurrentStartTime] = useState<string>("07:00");
   const [currentEndTime, setCurrentEndTime] = useState<string>("08:00");
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const [mods, setOptions] = useState<string[]>([]);
-  // const [favourableTimings, setFavourableTimings] = useState<string[]>([]);
-  
+  const [mods, setMods] = useState<string[]>([]);
+
   const daysOfWeek: string[] = [
     "Monday",
     "Tuesday",
@@ -35,12 +32,8 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     "Sunday",
   ];
 
-  useEffect(() => {
-    getOptions();
-    console.log(mods);
-  }, []);
-
-  const getOptions = async (): Promise<void> => {
+  // Dropdown options
+  const fetchOptions = useCallback(async () => {
     try {
       const response = await fetch("http://localhost:8080/getAllMods", {
         method: "GET",
@@ -48,82 +41,93 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
           "Content-Type": "application/json",
         },
       });
-      const data = await response.json();
-      setOptions(data.payload);
+      if (response.ok) {
+        const data = await response.json();
+        setMods(data.payload);
+      } else {
+        console.error("Failed to fetch options. Status:", response.status);
+      }
     } catch (error) {
-      console.error("Error fetching options", error);
+      console.error("Error fetching options:", error);
     }
-  };
+  }, []);
 
-  const filteredOptions = mods.filter((option) =>
-    option.toUpperCase().includes(query.toUpperCase())
-  ).slice(0, 5);
+  useEffect(() => {
+    fetchOptions();
+  }, [fetchOptions]);
 
-  const submitResult = async (selectedOptions: string[]) => {
+  // Submit form data
+  const submitSelectedOptions = useCallback(async () => {
     try {
-      const response = await fetch("https://localhost:8080/submitResult", {
+      const response = await fetch("http://localhost:8080/checkFreeDays", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ mods: selectedOptions }),
+        body: JSON.stringify({ modules: selectedOptions }),
       });
       if (!response.ok) {
-        throw new Error("Failed to submit options");
+        console.error("Failed to submit options. Status:", response.status);
       }
-      console.log("Options submitted successfully");
     } catch (error) {
-      console.log(selectedOptions)
-      console.error("Error submitting options", error);
+      console.error("Error submitting options:", error);
     }
-  };
-
-  useEffect(() => {
-    submitResult(selectedOptions);
   }, [selectedOptions]);
 
-  const handleAddOption = (option: string): void => {
+  useEffect(() => {
+    if (selectedOptions.length > 0) {
+      submitSelectedOptions();
+    }
+  }, [selectedOptions]);
+
+  const handleAddOption = useCallback((mod: string): void => {
     setSelectedOptions((prevOptions) => {
-      const updatedOptions = [...prevOptions, option];
+      const updatedOptions = [...prevOptions, mod];
       return updatedOptions;
     });
-    setQuery(""); // Clear the search query
-  };
+    setQuery("");
 
-  const handleRemoveOption = (index: number): void => {
+  }, []);
+
+  const handleRemoveOption = useCallback((index: number): void => {
     setSelectedOptions((prevOptions) => {
-      const updatedOptions = prevOptions.filter((_, i) => i !== index);
-      return updatedOptions;
+      return prevOptions.filter((_, i) => i !== index);
     });
-  };
+  }, []);
 
-  const toggleExcludeDay = (day: string): void => {
-    const newExcludedDays = freeDays.includes(day)
-      ? freeDays.filter((d) => d !== day)
-      : [...freeDays, day];
+  const toggleFreeDay = useCallback((day: string): void => {
+    setFreeDays((prevDays) => {
+      return prevDays.includes(day)
+        ? prevDays.filter((d) => d !== day)
+        : [...prevDays, day];
+    });
+  }, []);
 
-    setExcludeDays(newExcludedDays);
+  const validateTimings = (): boolean => {
+    return currentStartTime < currentEndTime;
   };
 
   const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
-  
+
     if (selectedOptions.length === 0) {
       alert("Please add at least one option!");
       return;
-      }
-    
-  
-    // const favourableTimings = [`${currentStartTime} - ${currentEndTime}`];
-    
+    }
+
+    if (!validateTimings()) {
+      alert("Start time must be earlier than end time.");
+      return;
+    }
+
     const requestData = {
       mods: selectedOptions,
       freeDays: freeDays,
-      semester: Number(semester),
+      semester: semester,
       currentStartTime,
       currentEndTime,
-    }
-  
+    };
+
     try {
       const response = await fetch("http://localhost:8080/getSlots", {
         method: "POST",
@@ -132,39 +136,32 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
         },
         body: JSON.stringify(requestData),
       });
-  
+
       if (!response.ok) {
-        console.log("Request data:", requestData);
         const errorMessage = `Failed to submit options. Status: ${response.status}`;
         console.error(errorMessage);
         alert(errorMessage);
         return;
       }
-  
-      alert("Options submitted successfully!");
-      console.log("Response:", await response.json());
+
+      alert("Timetable generated successfully!");
+      onGenerate(requestData);
     } catch (error) {
       console.error("Network error:", error);
-      alert("Failed to submit options due to a network error.");
-      return;
+      alert("Failed to generate timetable due to a network error.");
     }
-  
-    // Call onGenerate only after successful submission
-    onGenerate(requestData);
   };
+
+  const filteredOptions = mods
+    .filter((mod) => mod.toUpperCase().includes(query.toUpperCase()))
+    .slice(0, 5);
 
   return (
     <div className="bg-header p-6 rounded-lg shadow-lg relative text-white">
       <h2 className="text-2xl font-bold text-orange mb-6 text-center">
         Input Your Criteria
       </h2>
-      {popupMessage && (
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-md shadow-md animate-fade-in">
-          {popupMessage}
-        </div>
-      )}
       <form className="space-y-6" onSubmit={handleSubmit}>
-        {/* Styled Search Bar */}
         <div className="relative">
           <label htmlFor="search" className="sr-only">
             Search Option
@@ -190,17 +187,15 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
               placeholder="Search option..."
             />
           </div>
-
-          {/* Dropdown Menu */}
           {query && (
             <ul className="absolute z-10 bg-mainbg shadow-lg rounded-md mt-1 max-h-40 w-full overflow-auto border border-gray-700">
-              {filteredOptions.map((option, index) => (
+              {filteredOptions.map((mod, index) => (
                 <li
                   key={index}
-                  onClick={() => handleAddOption(option)}
+                  onClick={() => handleAddOption(mod)}
                   className="px-4 py-2 cursor-pointer text-gray-300 hover:bg-orange hover:text-white transition-all duration-200"
                 >
-                  {option} 
+                  {mod}
                 </li>
               ))}
               {filteredOptions.length === 0 && (
@@ -209,8 +204,6 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
             </ul>
           )}
         </div>
-
-        {/* Semester */}
         <div>
           <label className="block text-sm font-medium text-orange">Semester</label>
           <select
@@ -222,8 +215,6 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
             <option value="2">2</option>
           </select>
         </div>
-
-        {/* Excluded Days */}
         <div>
           <label className="block text-sm font-medium text-orange">Choose days to be free</label>
           <div className="flex flex-wrap gap-2 mt-2">
@@ -231,7 +222,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
               <button
                 type="button"
                 key={day}
-                onClick={() => toggleExcludeDay(day)}
+                onClick={() => toggleFreeDay(day)}
                 className={`px-3 py-1 rounded-md ${
                   freeDays.includes(day)
                     ? "bg-orange text-white"
@@ -280,12 +271,12 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
           <p className="text-gray-300 text-center">No options added yet.</p>
         ) : (
           <ul className="space-y-2">
-            {selectedOptions.map((option, index) => (
+            {selectedOptions.map((mod, index) => (
               <li
                 key={index}
                 className="bg-mainbg shadow-md rounded-md p-4 flex justify-between items-center"
               >
-                <p className="text-sm font-bold text-orange">{option}</p>
+                <p className="text-sm font-bold text-orange">{mod}</p>
                 <button
                   onClick={() => handleRemoveOption(index)}
                   className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-300"
