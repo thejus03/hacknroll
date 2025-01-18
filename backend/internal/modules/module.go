@@ -123,6 +123,75 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 				break
 			}
 		}
-	}
+		for _, slotInterface := range eachModSemData["timetable"].([]any) {
+			slot, ok := slotInterface.(map[string]any)
+			if !ok {
+				return nil, nil, fmt.Errorf("slot is not a map[string]any")
+			}
+			lessonType, ok := slot["lessonType"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("lessonType is not a string")
+			}
+			day, ok := slot["day"].(string) // only one day
+			if !ok {
+				return nil, nil, fmt.Errorf("day is not a string")
+			}
+			startTimeStr, ok := slot["startTime"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("startTime is not a string")
+			}
+			startTime, err := time.Parse(timeLayout, startTimeStr)
+			if err != nil {
+				return nil, nil, fmt.Errorf("startTime is not in the correct format")
+			}
+			endTimeStr, ok := slot["endTime"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("endTime is not a string")
+			}
+			
+			endTime, err := time.Parse(timeLayout, endTimeStr)
+			if err != nil {
+				return nil, nil, err
+			}
+			classNo, ok := slot["classNo"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("classNo is not a string")
+			}
+			venue, ok := slot["venue"].(string)
+			if !ok {
+				return nil, nil, fmt.Errorf("venue is not a string")
+			}
+			lessonInstance := models.Lesson{ModuleCode: modDataMap["moduleCode"].(string), LessonType: lessonType}
+			closeEnough := false
+			// Check the JSON for location coordinates
+			var locationInstance models.Location
+			var slotInstance models.Slot
+			for key, locationValue := range venueData {
+				// if key == venue {
+				if strings.Contains(venue, key) {
+					fmt.Println("venue:", venue, "key:", key)
+					// validLocation = true
+					if !ok {
+						return nil, nil, fmt.Errorf("location is not a map[string]any")
+					}
+					x := locationValue[0]
+					y := locationValue[1]
+					locationInstance = models.Location{
+						Name: key,
+						X:    x,
+						Y:    y,
+					}
+					break
+				} else {
+					locationInstance = models.Location{
+						Name: venue,
+						X:    0,
+						Y:    0,
+					}
 
-}
+				}
+			}
+
+			
+		}
+	}
