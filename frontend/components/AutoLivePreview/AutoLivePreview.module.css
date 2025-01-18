@@ -1,0 +1,12 @@
+.active {
+    background-color: #ff5138; /* Orange highlight */
+    color: #fff;
+    transition: all 0.5s ease-in-out;
+  }
+  
+  .inactive {
+    background-color: #292929; /* Dark background */
+    color: #ccc;
+    transition: all 0.5s ease-in-out;
+  }
+  

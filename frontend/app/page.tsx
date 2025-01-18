@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { FaArrowDown } from "react-icons/fa";
+import AutoLivePreview from "../components/AutoLivePreview/AutoLivePreview"; // Import AutoLivePreview component
 
 export default function LandingPage() {
   const [hovered, setHovered] = useState(false);
@@ -65,6 +66,23 @@ export default function LandingPage() {
               Intuitive interface designed for everyone—no learning curve.
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Auto-Live-Preview Section */}
+      <section
+        id="live-preview"
+        className="w-full py-20 bg-header text-center flex flex-col items-center"
+      >
+        <h2 className="text-3xl font-bold text-orange mb-6">
+          Live Preview of Timetable AI
+        </h2>
+        <p className="text-gray-300 mb-8 max-w-3xl">
+          See how Timetable AI optimizes schedules in real-time. Tasks and preferences dynamically update to give you the perfect timetable.
+        </p>
+        {/* Insert Auto-Live-Preview Component */}
+        <div className="max-w-5xl mx-auto w-full">
+          <AutoLivePreview />
         </div>
       </section>
 

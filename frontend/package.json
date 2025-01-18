@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "autoprefixer": "^10.4.20",
+    "axios": "^1.7.9",
+    "html2canvas": "^1.4.1",
     "next": "15.1.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
