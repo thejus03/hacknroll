@@ -12,6 +12,12 @@ interface TimetableFormProps {
   }) => void;
 }
 
+// Define the structure of the response
+interface ApiResponse {
+  message: string;
+  payload: string[][]; // Adjust the inner array type if needed
+}
+
 export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [query, setQuery] = useState<string>("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -57,31 +63,44 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   }, [fetchOptions]);
 
   // Submit form data
-  const submitSelectedOptions = useCallback(async () => {
-    try {
-      const response = await fetch("http://localhost:8080/checkFreeDays", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ modules: selectedOptions }),
-      });
-      if (!response.ok) {
-        console.error("Failed to submit options. Status:", response.status);
-      } else {
-        console.log(response.json());
-      }
+  const submitSelectedOptions = useEffect(() => {
+    const submitOptions = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/checkFreeDays", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ modules: selectedOptions }),
+        });
+  
+        if (!response.ok) {
+          console.error("Failed to submit options. Status:", response.status);
+          return;
+        }
+  
+        const data: ApiResponse = await response.json();
+
+      // Extract payload
+      const { payload } = data;
+
+      console.log("Payload:", payload);
     } catch (error) {
       console.error("Error submitting options:", error);
     }
-  }, [selectedOptions]);
-
-  useEffect(() => {
+  };
+  
     if (selectedOptions.length > 0) {
-      submitSelectedOptions();
-      console.log("Checker", selectedOptions);
+      submitOptions();
     }
   }, [selectedOptions]);
+
+  // useEffect(() => {
+  //   if (selectedOptions.length > 0) {
+  //     submitSelectedOptions();
+  //     console.log("Checker", selectedOptions);
+  //   }
+  // }, [selectedOptions]);
 
   const handleAddOption = useCallback((mod: string): void => {
     setSelectedOptions((prevOptions) => {
@@ -155,7 +174,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
       }
 
       alert("Timetable generated successfully!");
-      onGenerate(requestData);
+      // onGenerate(requestData);
     } catch (error) {
       console.error("Network error:", error);
       alert("Failed to generate timetable due to a network error.");
