@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"runtime"
 	"sort"
-	"time"
 	"sync"
-	"github.com/umahmood/haversine"
+	"time"
+
 	"github.com/thejus03/hacknroll/backend/internal/graph"
 	"github.com/thejus03/hacknroll/backend/internal/models"
+	"github.com/umahmood/haversine"
 )
 
 type Tuple struct {
@@ -45,11 +46,6 @@ func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson
 	lesson := lessons[idx]
 	for _, slot := range lessonToSlots[lesson] {
 		lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
-		if _, exists := freeDays[slot.Day]; exists {
-			if lessonslot.Lesson.LessonType != "Lecture" {
-				continue
-			}
-		}
 		if !graph.IsAdjacent(lessonslot, chosen_lessonslots) {
 			chosen_lessonslots = append(chosen_lessonslots, lessonslot)
 			Backtrack(idx+1, lessons, lessonToSlots, chosen_lessonslots, timetables, graph, freeDays)
@@ -57,7 +53,6 @@ func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson
 		}
 	}
 }
-
 
 func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson][]models.Slot, cutoff_timings map[string]time.Time, freeDays map[string]bool, graph graph.Graph) [][]models.LessonSlot {
 
@@ -70,11 +65,9 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 	var timetables [][]models.LessonSlot
 	var topTimetables TupleHeap
 	heap.Init(&topTimetables)
-	fmt.Println("Timetables possible", len(timetables))
 
 	// Call Backtracking function to find all possilbe timetables
 	Backtrack(0, lessons, lessonToSlots, []models.LessonSlot{}, &timetables, graph, freeDays)
-
 
 	// Get the number of workers to use
 	numWorkers := runtime.NumCPU()
@@ -84,7 +77,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 	resultsChan := make(chan Tuple, 10_000)
 
 	// Start the scoring
-	var wg sync.WaitGroup	
+	var wg sync.WaitGroup
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
 		go func() {
@@ -94,7 +87,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 				score := ScoreTimetable(sorted_timetable, cutoff_timings, freeDays)
 				resultsChan <- Tuple{score, tt}
 			}
-			// Send results to 
+			// Send results to
 		}()
 	}
 
@@ -128,7 +121,7 @@ func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson
 	}
 
 	return res
-	
+
 }
 
 func SortByDays(timetable []models.LessonSlot) map[string][]models.LessonSlot {
@@ -208,7 +201,7 @@ func ScoreTimetable(timetable map[string][]models.LessonSlot, cutoff_timings map
 					prev := haversine.Coord{Lat: prev_location.Y, Lon: prev_location.X}
 					curr := haversine.Coord{Lat: lessonslot.Slot.LocationObject.Y, Lon: lessonslot.Slot.LocationObject.X}
 					_, km := haversine.Distance(prev, curr)
-	
+
 					// Penalise based locations between lessons
 					maxWalkDistance := 0.250
 					score += float32(-(10.0/maxWalkDistance)*km + 10.0)

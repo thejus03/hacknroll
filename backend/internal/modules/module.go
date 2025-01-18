@@ -94,7 +94,7 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 		return
 	}
 	cutoff_timings := map[string]time.Time{"earliest": earliestTime, "latest": latestTime}
-	lessonToSlotListMap, lessons, err := cleanData(rawDataList, semester, venueData)
+	lessonToSlotListMap, lessons, err := cleanData(rawDataList, semester, venueData, freeDays)
 	if err != nil {
 		fmt.Println("Error cleaning data:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error cleaning data"})
@@ -109,10 +109,11 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 	}
 	graph := graph.CreateGraph(lessonSlotList)
 	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToSlotListMap, cutoff_timings, freeDays, graph)
-	fmt.Println("res:", res)
+	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": res})
+
 }
 
-func cleanData(rawDataList []any, semester int, venueData map[string][]float64) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
+func cleanData(rawDataList []any, semester int, venueData map[string][]float64, freeDays map[string]bool) (map[models.Lesson][]models.Slot, []models.Lesson, error) {
 	// var filtered []models.LessonSlot
 	// filtering
 	const timeLayout = "1504"
@@ -154,6 +155,11 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64) 
 			if !ok {
 				return nil, nil, fmt.Errorf("day is not a string")
 			}
+			if _, exists := freeDays[day]; exists {
+				if lessonType != "Lecture" {
+					continue
+				}
+			}
 			startTimeStr, ok := slot["startTime"].(string)
 			if !ok {
 				return nil, nil, fmt.Errorf("startTime is not a string")
@@ -185,10 +191,11 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64) 
 			var locationInstance models.Location
 			var slotInstance models.Slot
 			noMatch := true
+			//venueData is from json
 			for key, locationValue := range venueData {
 				if key == venue {
 					noMatch = false
-					fmt.Println("venue:", venue, "key:", key)
+					// fmt.Println("venue:", venue, "key:", key)
 					// validLocation = true
 					if !ok {
 						return nil, nil, fmt.Errorf("location is not a map[string]any")
@@ -215,7 +222,7 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64) 
 			}
 
 			if len(locationInstance.Name) == 0 {
-				// fmt.Println(lessonInstance.ModuleCode, " has no location:")
+				fmt.Println(lessonInstance.ModuleCode, " has no location:")
 				continue
 			}
 			slotCount++ // slot count is lesser  than previous commit
