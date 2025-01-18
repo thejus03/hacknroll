@@ -115,6 +115,14 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			return nil, nil, fmt.Errorf("cannot access semesterData")
 		}
 		var eachModSemData map[string]any
+		for _, data := range semesterData {
+			assertedData := data.(map[string]any)
+			if sem, ok := assertedData["semester"]; ok && int(sem.(float64)) == semester {
+				// note down the indices to be removed
+				eachModSemData = data.(map[string]any)
+				break
+			}
+		}
 	}
 
 }
