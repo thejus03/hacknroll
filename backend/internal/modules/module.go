@@ -109,6 +109,7 @@ func Submit(c *gin.Context, venueData map[string][]float64) {
 			}
 		}
 	}
+	// fmt.Println("map:", lessonToClassNoToSlotListMap)
 	graph := graph.CreateGraph(lessonSlotList)
 	var res [][]models.LessonSlot = search.PossibleTimetables(lessons, lessonToClassNoToSlotListMap, cutoff_timings, freeDays, graph)
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": res})
@@ -231,21 +232,29 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 			slotInstance = models.Slot{Day: day, StartTime: startTime, EndTime: endTime, LocationObject: locationInstance, ClassNo: classNo}
 
 			mapKeyExists := false
-			for key, value := range lessonToClassNoToSlotListMap {
+			for key, classNoMap := range lessonToClassNoToSlotListMap {
 				// if same Lesson Type,
 				if key == lessonInstance {
+					fmt.Println("key exists for lesson:", key)
 					mapKeyExists = true
 					// check if the day, time and same x,y coordinate are the same, if so , dont add
 					// append to the list
 					// check if the class number is the same
-					for classNoKey, slotArr := range value {
+					classNoSame := false
+					for classNoKey, slotArr := range classNoMap {
 						if classNoKey == classNo {
+							classNoSame = true
+							fmt.Println("classNo exists for lesson:", lessonInstance)
 							slotArr = append(slotArr, slotInstance)
 						}
+					}
+					if !classNoSame {
+						classNoMap[classNo] = []models.Slot{slotInstance}
 					}
 				}
 			}
 			if !mapKeyExists {
+				fmt.Println("key does not exist for lesson:", lessonInstance)
 				// initialise the key/value pair
 				lessonToClassNoToSlotListMap[lessonInstance] = map[string][]models.Slot{classNo: []models.Slot{slotInstance}}
 				lessonList = append(lessonList, lessonInstance)
@@ -254,8 +263,8 @@ func cleanData(rawDataList []any, semester int, venueData map[string][]float64, 
 
 	}
 	fmt.Println("slots created:", slotCount)
-	for lesson, slotList := range lessonToClassNoToSlotListMap {
-		fmt.Println(lesson, ":", len(slotList))
+	for lesson, classNoMap := range lessonToClassNoToSlotListMap {
+		fmt.Println(lesson, ":", len(classNoMap))
 	}
 	return lessonToClassNoToSlotListMap, lessonList, nil
 
