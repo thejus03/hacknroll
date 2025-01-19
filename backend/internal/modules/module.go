@@ -350,7 +350,7 @@ func CheckFreeDays(c *gin.Context) {
 
 	rawDataList, _, semester := modDataFromList(c, false) //make this global variable
 	// go through each slot and make a map
-	modToDays := make(map[string][]string)
+	modToDays := make(map[string]map[string][]string)
 	// where the key is the module code and value is all the freeDays
 	twoDArray := [][]string{}
 	for _, eachModRawData := range rawDataList {
@@ -400,26 +400,33 @@ func CheckFreeDays(c *gin.Context) {
 				continue
 			}
 			if _, exists := modToDays[modCodeString]; !exists {
-				modToDays[modCodeString] = []string{dayString}
-			} else {
-				// only add the day if it is not already in the list
-				addDay := true
-				for _, day := range modToDays[modCodeString] {
-					if day == dayString {
-						addDay = false
-						continue
-					}
-				}
-				if addDay {
-					modToDays[modCodeString] = append(modToDays[modCodeString], dayString)
+				modToDays[modCodeString] = make(map[string][]string)
+			} 
+			// only add the day if it is not already in the list
+			if _, exists := modToDays[modCodeString][lessonType]; !exists {
+				modToDays[modCodeString][lessonType] = []string{}
+			}
+			
+			addDay := true
+			for _, day := range modToDays[modCodeString][lessonType] {
+				if day == dayString {
+					addDay = false
+					continue
 				}
 			}
+			if addDay {
+				modToDays[modCodeString][lessonType] = append(modToDays[modCodeString][lessonType], dayString)
+			}
+			
 		}
 		fmt.Println("modToDays:", modToDays)
 	}
-	for _, days := range modToDays {
+	for _, rest := range modToDays {
+		for _, slotlist := range rest {
+
+			twoDArray = append(twoDArray, slotlist)
+		}
 		// for all the mods if the days are common
-		twoDArray = append(twoDArray, days)
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Success", "payload": twoDArray})
 	// [[Monday, Tuesday], [Monday, Wednesday], [Thursday]]
