@@ -35,8 +35,6 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     "Wednesday",
     "Thursday",
     "Friday",
-    "Saturday",
-    "Sunday",
   ];
 
   // Dropdown options
