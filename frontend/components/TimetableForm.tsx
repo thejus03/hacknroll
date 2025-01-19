@@ -70,7 +70,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ modules: selectedOptions }),
+          body: JSON.stringify({ modules: selectedOptions, semester: ["" + semester] }),
         });
   
         if (!response.ok) {
