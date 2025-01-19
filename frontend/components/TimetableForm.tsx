@@ -22,7 +22,7 @@ interface ApiResponse {
 export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [query, setQuery] = useState<string>("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [semester, setSemester] = useState<number>(1);
+  const [semester, setSemester] = useState<number>(2);
   const [freeDays, setFreeDays] = useState<string[]>([]);
   const [currentStartTime, setCurrentStartTime] = useState<string>("0700");
   const [currentEndTime, setCurrentEndTime] = useState<string>("0800");
@@ -60,10 +60,12 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
   useEffect(() => {
     fetchOptions();
-  }, [fetchOptions]);
+    checkFreeDays();
+    console.log(selectedOptions, semester);
+  }, [selectedOptions, semester]);
 
   // Submit form data
-  const submitSelectedOptions = useEffect(() => {
+  const checkFreeDays = () => {
     const submitOptions = async () => {
       try {
         const response = await fetch("http://localhost:8080/checkFreeDays", {
@@ -93,7 +95,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     if (selectedOptions.length > 0) {
       submitOptions();
     }
-  }, [selectedOptions]);
+  };
 
   // useEffect(() => {
   //   if (selectedOptions.length > 0) {
