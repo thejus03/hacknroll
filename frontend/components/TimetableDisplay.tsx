@@ -1,19 +1,14 @@
+import { link } from "fs";
 import React, { useState } from "react";
 
-interface TimetableData {
-  generatedURL: string[];
-  previewImage?: string;
-}
-const [linkArray, setLinkArray] = useState<string[]>([]);
-
-
 interface TimetableDisplayProps {
-  timetables: TimetableData[];
+  linkArrayPool: string[]; // Expecting an array of URLs (strings)
 }
 
-export default function TimetableDisplay( linkArrayPool: string[] ) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  setLinkArray([linkArrayPool]);
+export default function TimetableDisplay({ linkArrayPool }: TimetableDisplayProps) {
+  console.log("Link:", linkArrayPool);
+  const [hovered, setHovered] = useState(false); // Manage hover state
+
   if (!linkArrayPool || linkArrayPool.length === 0) {
     return (
       <div className="w-full min-h-screen p-6 flex justify-center items-center">
@@ -30,30 +25,24 @@ export default function TimetableDisplay( linkArrayPool: string[] ) {
         Generated Timetables
       </h2>
       <div className="flex flex-col items-center w-full space-y-6">
-        {linkArrayPool.map((timetable, index) => (
+        {linkArrayPool.map((url, index) => (
           <div
             key={index}
-            className="w-11/12 max-w-xl bg-header shadow-md rounded-lg p-4 relative cursor-pointer hover:scale-105 transition-transform duration-300"
-            onMouseEnter={() => setHoveredIndex(index)}
-            onMouseLeave={() => setHoveredIndex(null)}
-            onClick={() => {
-              console.log("link",timetable)
-              window.open(timetable, "_blank")}}
+            className="w-full max-w-3xl bg-header shadow-md rounded-lg p-6 relative cursor-pointer hover:scale-105 transition-transform duration-300"
+            onMouseEnter={() => setHovered(index)}
+            onMouseLeave={() => setHovered(null)}
           >
-            <h3 className="text-lg font-bold text-orange text-center">
+            <h3 className="text-lg font-bold text-orange text-center mb-4">
               Timetable {index + 1}
             </h3>
-
-            {/* Hover Preview */}
-            {hoveredIndex === index && timetable.previewImage && (
-              <div className="absolute top-0 left-0 w-full h-full bg-black bg-opacity-75 flex justify-center items-center rounded-lg z-10">
-                <img
-                  src={timetable.previewImage}
-                  alt={`Preview for Timetable ${index + 1}`}
-                  className="max-w-full max-h-full rounded-md shadow-lg"
-                />
-              </div>
-            )}
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-white underline hover:text-orange transition-colors duration-200 text-center"
+            >
+              View Timetable
+            </a>
           </div>
         ))}
       </div>

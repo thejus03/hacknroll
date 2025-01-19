@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import { FaSearch } from "react-icons/fa";
+import TimetableDisplay from "./TimetableDisplay";
 
 interface TimetableFormProps {
   onGenerate: (data: {
@@ -161,6 +162,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
     const [latesthour, latestminute] = currentEndTime.split(':').map((time) => time.padStart(2, '0'));
     const latestTime = latesthour + latestminute;
+    const [timetables, setTimetables] = useState([])
 
     const requestData = {
       mods: selectedOptions,
@@ -186,14 +188,15 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
         alert(errorMessage);
         return;
       }
+      let data = await response.json();
+      console.log("Payload:", data.payload);
+      setTimetables(data.payload)
 
-      console.log("Response", await response.json);
 
       alert("Timetable generated successfully!");
-      // onGenerate(requestData);
     } catch (error) {
-      console.error("Network error:", error);
-      alert("Failed to generate timetable due to a network error.");
+      console.error("TimetableDisplay error:", error);
+      alert("Failed to generate timetable due to a timetable display error.");
     }
   };
 
@@ -201,138 +204,4 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     .filter((mod) => mod.toUpperCase().includes(query.toUpperCase()))
     .slice(0, 5);
 
-  return (
-    <div className="bg-header p-6 rounded-lg shadow-lg relative text-white">
-      <h2 className="text-2xl font-bold text-orange mb-6 text-center">
-        Input Your Criteria
-      </h2>
-      <form className="space-y-6" onSubmit={handleSubmit}>
-        <div className="relative">
-          <label htmlFor="search" className="sr-only">
-            Search Option
-          </label>
-          <div
-            className={`flex items-center border-b ${
-              isFocused ? "border-orange" : "border-gray-300"
-            }`}
-          >
-            <FaSearch
-              className={`mr-2 ${
-                isFocused ? "text-white" : "text-gray-300"
-              }`}
-            />
-            <input
-              id="search"
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-300 placeholder-gray-300"
-              placeholder="Search option..."
-            />
-          </div>
-          {query && (
-            <ul className="absolute z-10 bg-mainbg shadow-lg rounded-md mt-1 max-h-40 w-full overflow-auto border border-gray-700">
-              {filteredOptions.map((mod, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleAddOption(mod)}
-                  className="px-4 py-2 cursor-pointer text-gray-300 hover:bg-orange hover:text-white transition-all duration-200"
-                >
-                  {mod}
-                </li>
-              ))}
-              {filteredOptions.length === 0 && (
-                <li className="px-4 py-2 text-gray-300">No matches found</li>
-              )}
-            </ul>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-orange">Semester</label>
-          <select
-            value={semester}
-            onChange={(e) => setSemester(Number(e.target.value))}
-            className="w-full mt-1 bg-mainbg text-gray-300 rounded-md border border-gray-600 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange appearance-none"
-          >
-            <option value="1">1</option>
-            <option value="2">2</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-orange">Choose days to be free</label>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {daysOfWeek.map((day) => (
-              <button
-                type="button"
-                key={day}
-                onClick={() => toggleFreeDay(day)}
-                className={`px-3 py-1 rounded-md ${
-                  freeDays.includes(day)
-                    ? "bg-orange text-white"
-                    : "bg-mainbg text-gray-300 border border-gray-600"
-                } hover:bg-orange hover:text-white transition-all duration-200`}
-              >
-                {day}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Favourable Timings */}
-        <div>
-          <label className="block text-sm font-medium text-orange">Favourable Timings</label>
-          <div className="flex items-center space-x-4 mt-2">
-            <input
-              type="time"
-              value={currentStartTime}
-              onChange={(e) => setCurrentStartTime(e.target.value)}
-              className="bg-mainbg text-gray-300 border border-gray-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-orange"
-            />
-            <span className="text-orange">to</span>
-            <input
-              type="time"
-              value={currentEndTime}
-              onChange={(e) => setCurrentEndTime(e.target.value)}
-              className="bg-mainbg text-gray-300 border border-gray-600 rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-orange"
-            />
-          </div>
-        </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          className="w-full bg-orange text-white py-2 rounded-md hover:bg-orange-700 transition-all duration-300"
-        >
-          Generate Timetable
-        </button>
-      </form>
-
-      {/* Display Selected Options */}
-      <div className="mt-6">
-        <h3 className="text-lg font-bold text-orange mb-4">Selected Options</h3>
-        {selectedOptions.length === 0 ? (
-          <p className="text-gray-300 text-center">No options added yet.</p>
-        ) : (
-          <ul className="space-y-2">
-            {selectedOptions.map((mod, index) => (
-              <li
-                key={index}
-                className="bg-mainbg shadow-md rounded-md p-4 flex justify-between items-center"
-              >
-                <p className="text-sm font-bold text-orange">{mod}</p>
-                <button
-                  onClick={() => handleRemoveOption(mod)}
-                  className="bg-red-500 text-white px-3 py-1 rounded-md hover:bg-red-600 transition duration-300"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
 }
