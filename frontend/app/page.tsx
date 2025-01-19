@@ -82,7 +82,7 @@ export default function LandingPage() {
         </p>
         {/* Insert Auto-Live-Preview Component */}
         <div className="max-w-5xl mx-auto w-full">
-          <AutoLivePreview />
+          {/* <AutoLivePreview /  > */}
         </div>
       </section>
 
