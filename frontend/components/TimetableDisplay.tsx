@@ -1,18 +1,20 @@
 import React, { useState } from "react";
 
 interface TimetableData {
-  generatedURL: string;
+  generatedURL: string[];
   previewImage?: string;
 }
+const [linkArray, setLinkArray] = useState<string[]>([]);
+
 
 interface TimetableDisplayProps {
   timetables: TimetableData[];
 }
 
-export default function TimetableDisplay({ timetables }: TimetableDisplayProps) {
+export default function TimetableDisplay( linkArrayPool: string[] ) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  if (!timetables || timetables.length === 0) {
+  setLinkArray([linkArrayPool]);
+  if (!linkArrayPool || linkArrayPool.length === 0) {
     return (
       <div className="w-full min-h-screen p-6 flex justify-center items-center">
         <h2 className="text-lg text-gray-400">
@@ -28,13 +30,15 @@ export default function TimetableDisplay({ timetables }: TimetableDisplayProps) 
         Generated Timetables
       </h2>
       <div className="flex flex-col items-center w-full space-y-6">
-        {timetables.map((timetable, index) => (
+        {linkArrayPool.map((timetable, index) => (
           <div
             key={index}
             className="w-11/12 max-w-xl bg-header shadow-md rounded-lg p-4 relative cursor-pointer hover:scale-105 transition-transform duration-300"
             onMouseEnter={() => setHoveredIndex(index)}
             onMouseLeave={() => setHoveredIndex(null)}
-            onClick={() => window.open(timetable.generatedURL, "_blank")}
+            onClick={() => {
+              console.log("link",timetable)
+              window.open(timetable, "_blank")}}
           >
             <h3 className="text-lg font-bold text-orange text-center">
               Timetable {index + 1}

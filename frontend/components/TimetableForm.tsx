@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import { FaSearch } from "react-icons/fa";
-import { TimetableDisplay} from "./TimetableDisplay";
 
 interface TimetableFormProps {
   onGenerate: (data: {
@@ -19,7 +18,7 @@ interface ApiResponse {
   payload: string[][]; // Adjust the inner array type if needed
 }
 
-export default function TimetableForm() {
+export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [query, setQuery] = useState<string>("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [semester, setSemester] = useState<number>(1);
@@ -30,7 +29,6 @@ export default function TimetableForm() {
   const [mods, setMods] = useState<string[]>([]);
   const [mandatoryDays, setMandatoryDays] = useState<string[][]>([]);
 
-  const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
   const daysOfWeek: string[] = [
     "Monday",
     "Tuesday",
@@ -40,7 +38,7 @@ export default function TimetableForm() {
   ];
 
   // Dropdown options
-  const fetchOptions = async () => {
+  const fetchOptions = useCallback(async () => {
     try {
       const response = await fetch("http://localhost:8080/getAllMods", {
         method: "GET",
@@ -50,7 +48,6 @@ export default function TimetableForm() {
       });
       if (response.ok) {
         const data = await response.json();
-        console.log("response",data)
         setMods(data.payload);
       } else {
         console.error("Failed to fetch options. Status:", response.status);
@@ -58,7 +55,7 @@ export default function TimetableForm() {
     } catch (error) {
       console.error("Error fetching options:", error);
     }
-  }, [];
+  }, []);
 
   useEffect(() => {
     fetchOptions();
@@ -148,26 +145,32 @@ export default function TimetableForm() {
 
   const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
-  
+
     if (selectedOptions.length === 0) {
       alert("Please add at least one option!");
       return;
     }
-  
+
     if (!validateTimings()) {
       alert("Start time must be earlier than end time.");
       return;
     }
-  
+
+    const [earliesthour, earliestminute] = currentStartTime.split(':').map((time) => time.padStart(2, '0'));
+    const earliestTime = earliesthour + earliestminute;
+
+    const [latesthour, latestminute] = currentEndTime.split(':').map((time) => time.padStart(2, '0'));
+    const latestTime = latesthour + latestminute;
+
     const requestData = {
       mods: selectedOptions,
-      freeDays,
-      semester,
-      earliestTime: currentStartTime,
-      latestTime: currentEndTime,
-  
+      freeDays: freeDays,
+      semester: semester,
+      earliestTime,
+      latestTime,
     };
-  
+
+
     try {
       const response = await fetch("http://localhost:8080/getSlots", {
         method: "POST",
@@ -184,14 +187,16 @@ export default function TimetableForm() {
         return;
       }
 
+      console.log("Response", await response.json);
+
       alert("Timetable generated successfully!");
       // onGenerate(requestData);
     } catch (error) {
-      console.error("Error submitting options:", error);
+      console.error("Network error:", error);
       alert("Failed to generate timetable due to a network error.");
     }
   };
-  
+
   const filteredOptions = mods
     .filter((mod) => mod.toUpperCase().includes(query.toUpperCase()))
     .slice(0, 5);
