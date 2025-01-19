@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import { FaSearch } from "react-icons/fa";
+import { TimetableDisplay} from "./TimetableDisplay";
 
 interface TimetableFormProps {
   onGenerate: (data: {
@@ -18,7 +19,7 @@ interface ApiResponse {
   payload: string[][]; // Adjust the inner array type if needed
 }
 
-export default function TimetableForm({ onGenerate }: TimetableFormProps) {
+export default function TimetableForm() {
   const [query, setQuery] = useState<string>("");
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
   const [semester, setSemester] = useState<number>(1);
@@ -27,11 +28,19 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
   const [currentEndTime, setCurrentEndTime] = useState<string>("0800");
   const [isFocused, setIsFocused] = useState<boolean>(false);
   const [mods, setMods] = useState<string[]>([]);
+  const [mandatoryDays, setMandatoryDays] = useState<string[][]>([]);
 
   const daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+  const daysOfWeek: string[] = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+  ];
 
   // Dropdown options
-  const fetchOptions = useCallback(async () => {
+  const fetchOptions = async () => {
     try {
       const response = await fetch("http://localhost:8080/getAllMods", {
         method: "GET",
@@ -41,6 +50,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
       });
       if (response.ok) {
         const data = await response.json();
+        console.log("response",data)
         setMods(data.payload);
       } else {
         console.error("Failed to fetch options. Status:", response.status);
@@ -48,7 +58,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     } catch (error) {
       console.error("Error fetching options:", error);
     }
-  }, []);
+  }, [];
 
   useEffect(() => {
     fetchOptions();
@@ -75,7 +85,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
       // Extract payload
       const { payload } = data;
-
+      setMandatoryDays(payload);
       console.log("Payload:", payload);
     } catch (error) {
       console.error("Error submitting options:", error);
@@ -109,13 +119,28 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
     });
   }, []);
 
-  const toggleFreeDay = useCallback((day: string): void => {
-    setFreeDays((prevDays) => {
-      return prevDays.includes(day)
-        ? prevDays.filter((d) => d !== day)
-        : [...prevDays, day];
-    });
-  }, []);
+  const toggleFreeDay = (day: string): void => {
+    console.log("Toggling free day:", day);
+  
+    // Create a copy of freeDays including the new day
+    const updatedFreeDays = freeDays.includes(day)
+      ? freeDays.filter((d) => d !== day) // Remove the day if it's already selected
+      : [...freeDays, day]; // Add the day if it's not already selected
+  
+    // Check for conflicts with mandatoryDays
+    for (const subArray of mandatoryDays) {
+      if (subArray.every((mandatoryDay) => updatedFreeDays.includes(mandatoryDay))) {
+        alert(`You cannot make ${day} free due to mandatory schedule constraints.`);
+        console.log(`Conflict detected: Cannot make ${day} free.`);
+        return; // Exit the function without updating freeDays
+      }
+    }
+  
+    // Update freeDays if there's no conflict
+    setFreeDays(updatedFreeDays);
+    console.log("Updated freeDays:", updatedFreeDays);
+  };
+  
 
   const validateTimings = (): boolean => {
     return currentStartTime < currentEndTime;
@@ -123,53 +148,33 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
 
   const handleSubmit = async (e: FormEvent): Promise<void> => {
     e.preventDefault();
-
+  
     if (selectedOptions.length === 0) {
       alert("Please add at least one option!");
       return;
     }
-
+  
     if (!validateTimings()) {
       alert("Start time must be earlier than end time.");
       return;
     }
-
-    const [earliesthour, earliestminute] = currentStartTime.split(':').map((time) => time.padStart(2, '0'));
-    const earliestTime = earliesthour + earliestminute;
-
-    const [latesthour, latestminute] = currentEndTime.split(':').map((time) => time.padStart(2, '0'));
-    const latestTime = latesthour + latestminute;
-
+  
     const requestData = {
       mods: selectedOptions,
-      freeDays: freeDays,
-      semester: semester,
-      earliestTime,
-      latestTime,
+      freeDays,
+      semester,
+      earliestTime: currentStartTime,
+      latestTime: currentEndTime,
+  
     };
-
-
+  
     try {
       const response = await fetch("http://localhost:8080/getSlots", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-            "mods": [
-              "cs2030s",
-              "cs2040s",
-              "is1128",
-              "ma1522"
-            ],
-            "freeDays": [
-              "Monday",
-              "Wednesday"
-            ],
-            "semester":2,
-            "earliestTime": "0900",
-            "latestTime": "1700"
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {
@@ -178,29 +183,15 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
         alert(errorMessage);
         return;
       }
-      
+
       alert("Timetable generated successfully!");
-      onGenerate({
-        "mods": [
-              "cs2030s",
-              "cs2040s",
-              "is1128",
-              "ma1522"
-            ],
-            "freeDays": [
-              "Monday",
-              "Wednesday"
-            ],
-            "semester":2,
-            "earliestTime": "0900",
-            "latestTime": "1700"
-    });
+      // onGenerate(requestData);
     } catch (error) {
-      console.error("Network error:", error);
+      console.error("Error submitting options:", error);
       alert("Failed to generate timetable due to a network error.");
     }
   };
-
+  
   const filteredOptions = mods
     .filter((mod) => mod.toUpperCase().includes(query.toUpperCase()))
     .slice(0, 5);
@@ -212,8 +203,19 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
       </h2>
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="relative">
-          <div className={`flex items-center border-b ${isFocused ? "border-orange" : "border-gray-300"}`}>
-            <FaSearch className={`mr-2 ${isFocused ? "text-white" : "text-gray-300"}`} />
+          <label htmlFor="search" className="sr-only">
+            Search Option
+          </label>
+          <div
+            className={`flex items-center border-b ${
+              isFocused ? "border-orange" : "border-gray-300"
+            }`}
+          >
+            <FaSearch
+              className={`mr-2 ${
+                isFocused ? "text-white" : "text-gray-300"
+              }`}
+            />
             <input
               id="search"
               type="text"
@@ -222,7 +224,7 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               className="w-full bg-transparent border-none focus:outline-none focus:ring-0 text-gray-300 placeholder-gray-300"
-              placeholder="Search module..."
+              placeholder="Search option..."
             />
           </div>
           {query && (
@@ -294,14 +296,12 @@ export default function TimetableForm({ onGenerate }: TimetableFormProps) {
         </div>
 
         {/* Submit Button */}
-        <div className="mt-6">
-          <button
-            type="submit"
-            className="w-full bg-orange text-white py-2 rounded-md hover:bg-orange-700 transition-all duration-300"
-          >
-            Generate Timetable
-          </button>
-        </div>
+        <button
+          type="submit"
+          className="w-full bg-orange text-white py-2 rounded-md hover:bg-orange-700 transition-all duration-300"
+        >
+          Generate Timetable
+        </button>
       </form>
 
       {/* Display Selected Options */}
