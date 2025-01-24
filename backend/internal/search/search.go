@@ -36,114 +36,100 @@ func (t *TupleHeap) Pop() interface{} {
 	return x
 }
 
-func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson]map[string][]models.Slot, chosen_lessonslots []models.LessonSlot, timetables *[][]models.LessonSlot, graph graph.Graph, freeDays map[string]bool) {
-	// Keep track of which lesson we are at. Then for loop to check if not adjacent then add and recursively track until you reach the end of lesson
-	if idx == len(lessons) {
-		*timetables = append(*timetables, chosen_lessonslots)
-		return
-	}
+func Backtrack(idx int, lessons []models.Lesson, lessonToSlots map[models.Lesson]map[string][]models.Slot, chosen_lessonslots []models.LessonSlot, solutionsChan chan<- []models.LessonSlot, graph graph.Graph, freeDays map[string]bool) {
+    if idx == len(lessons) {
+        result := make([]models.LessonSlot, len(chosen_lessonslots))
+        copy(result, chosen_lessonslots)
+        solutionsChan <- result
+        return
+    }
 
-	lesson := lessons[idx]
-	for _, class := range lessonToSlots[lesson] {
-		possible := true
-		for _, slot := range class {
-			lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
-			if graph.IsAdjacent(lessonslot, chosen_lessonslots) {
-				possible = false
-				break
-			}
-		}
-		if possible {
-			// Create a copy of chosen_lessonslots
-			newChosenLessonslots := append([]models.LessonSlot{}, chosen_lessonslots...)
-		
-			// Append all slots in the current class to the new copy
-			for _, slot := range class {
-				lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
-				newChosenLessonslots = append(newChosenLessonslots, lessonslot)
-			}
-		
-			// Recursively call Backtrack with the new copy
-			Backtrack(idx+1, lessons, lessonToSlots, newChosenLessonslots, timetables, graph, freeDays)
-		
-			// No need to manually remove slots as modifications are isolated to the copy
-		}
-		
-	}
+    lesson := lessons[idx]
+    for _, class := range lessonToSlots[lesson] {
+        possible := true
+        for _, slot := range class {
+            lessonslot := models.LessonSlot{Lesson: lesson, Slot: slot}
+            if graph.IsAdjacent(lessonslot, chosen_lessonslots) {
+                possible = false
+                break
+            }
+        }
+        if possible {
+            newChosenLessonslots := append([]models.LessonSlot{}, chosen_lessonslots...)
+            for _, slot := range class {
+                newChosenLessonslots = append(newChosenLessonslots, models.LessonSlot{Lesson: lesson, Slot: slot})
+            }
+            Backtrack(idx+1, lessons, lessonToSlots, newChosenLessonslots, solutionsChan, graph, freeDays)
+        }
+    }
 }
 
 func PossibleTimetables(lessons []models.Lesson, lessonToSlots map[models.Lesson]map[string][]models.Slot, cutoff_timings map[string]time.Time, freeDays map[string]bool, graph graph.Graph) [][]models.LessonSlot {
 
-	// Sort the lessons in ascending order of number of slots
-	sort.Slice(lessons, func(i, j int) bool {
-		return len(lessonToSlots[lessons[i]]) < len(lessonToSlots[lessons[j]])
-	})
-	fmt.Println("Lessons:", lessons)
+	// sort to prune more backtracking
+    sort.Slice(lessons, func(i, j int) bool {
+        return len(lessonToSlots[lessons[i]]) < len(lessonToSlots[lessons[j]])
+    })
+    fmt.Println("Lessons:", lessons)
 
-	var timetables [][]models.LessonSlot
-	var topTimetables TupleHeap
-	heap.Init(&topTimetables)
+	// solutions channel to push timetables from backtracking 
+    solutionsChan := make(chan []models.LessonSlot, 2000) 
+	// results channel to push scores from workers
+    resultsChan := make(chan Tuple, 2000)
+	// Number of workers to spawn (can be changed)
+    numWorkers := runtime.NumCPU()
 
-	// Call Backtracking function to find all possilbe timetables
-	Backtrack(0, lessons, lessonToSlots, []models.LessonSlot{}, &timetables, graph, freeDays)
+    var wg sync.WaitGroup
 
-	fmt.Println("Number of Timetables:", len(timetables))
-	// Get the number of workers to use
-	numWorkers := runtime.NumCPU()
-	// Create channels for communication
-	workChan := make(chan []models.LessonSlot, 10_000)
-	// Create a channel to send timetable results
-	resultsChan := make(chan Tuple, 10_000)
+    // Start worker goroutines to read from solutionsChan -> compute score -> push to resultsChan
+    for i := 0; i < numWorkers; i++ {
+        wg.Add(1)
+        go func() {
+            defer wg.Done()
+            for timetable := range solutionsChan {
+                sorted_timetable := SortByDays(timetable)
+                score := ScoreTimetable(sorted_timetable, cutoff_timings, freeDays)
+                resultsChan <- Tuple{score, timetable}
+            }
+        }()
+    }
 
-	// Start the scoring
-	var wg sync.WaitGroup
-	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for tt := range workChan {
-				// fmt.Println("Scoring Timetable", tt)
-				sorted_timetable := SortByDays(tt)
-				score := ScoreTimetable(sorted_timetable, cutoff_timings, freeDays)
-				resultsChan <- Tuple{score, tt}
-			}
-			// Send results to
-		}()
-	}
+    // Start a goroutine that does the backtracking 
+    go func() {
+        Backtrack(0, lessons, lessonToSlots, []models.LessonSlot{}, solutionsChan, graph, freeDays)
+        close(solutionsChan)
+    }()
 
-	go func() {
-		for _, timetable := range timetables {
-			workChan <- timetable
-		}
-		close(workChan) // all jobs submitted
-	}()
+    // Start another goroutine to close resultsChan when all workers are done
+    go func() {
+        wg.Wait()
+        close(resultsChan)
+    }()
 
-	go func() {
-		wg.Wait()
-		close(resultsChan)
-	}()
+	// Use heap to get top 5 timetables from results channel 
+    var topTimetables TupleHeap
+    heap.Init(&topTimetables)
 
-	for result := range resultsChan {
-		if topTimetables.Len() < 5 {
-			heap.Push(&topTimetables, result)
-		} else if result.score > topTimetables[0].score {
-			heap.Pop(&topTimetables)
-			heap.Push(&topTimetables, result)
-		}
-	}
+    for result := range resultsChan {
+        if topTimetables.Len() < 5 {
+            heap.Push(&topTimetables, result)
+        } else if result.score > topTimetables[0].score {
+            heap.Pop(&topTimetables)
+            heap.Push(&topTimetables, result)
+        }
+    }
 
-	// Get the top 5 timetables
-	res := make([][]models.LessonSlot, 0, topTimetables.Len())
-	for topTimetables.Len() > 0 {
-		var ScoreTimetable Tuple = heap.Pop(&topTimetables).(Tuple)
-		res = append(res, ScoreTimetable.timetable)
-		fmt.Println("Score", ScoreTimetable.score)
-	}
+    res := make([][]models.LessonSlot, 0, topTimetables.Len())
+    for topTimetables.Len() > 0 {
+        t := heap.Pop(&topTimetables).(Tuple)
+        res = append(res, t.timetable)
+        fmt.Println("Score:", t.score)
+    }
 
-	return res
-	
-
+    return res
 }
+
+
 
 func SortByDays(timetable []models.LessonSlot) map[string][]models.LessonSlot {
 	/*
